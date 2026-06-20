@@ -1,0 +1,101 @@
+# Guitar Compensation — project context
+
+This project covers two linked deliverables for a single acoustic guitar:
+1. **`web/`** — a self-contained intonation-compensation calculator (website).
+2. **`saddle/`** — a parametric 3D-printable reference for hand-building a new lower-action saddle for the same instrument.
+
+This file is the handoff brief from a planning chat. Numbers below are settled unless flagged.
+
+## The instrument
+- Steel-string acoustic, **scale length 634 mm**, strings **John Pearse Light**.
+- **Fretboard radius 400 mm.**
+- **Saddle slot:** 3 mm wide; centreline runs **639.5 mm (6th/bass end) → 635 mm (1st/treble end)** from the nut. Not being re-routed.
+- Old (working) saddle is ~420 mm top radius + bass tilt; intonates within measurement noise.
+
+## The compensation model (Trevor Gore deflection method)
+Fretting stretches the string, which sharpens the note; compensation moves the
+break point back to cancel it. Sharpening is driven by **fretting deflection**,
+not string stiffness (Gore: stiffness ≈ negligible, ~0.25 cents). Key consequence:
+**compensation scales with action²**. So lowering the action reduces the required
+setback as `new_comp = old_comp × (new_action / old_action)²`. Saddle-position
+sensitivity ≈ 2.7 cents/mm at this scale (1731/L).
+
+The web calculator implements the full least-squares version (per-fret deflection
+→ ΔT → cents, solved for saddle setback + nut offset). It is vanilla JS / inline
+SVG, no build step, runs offline. Intended to deploy to GitHub Pages at
+`guitar-compensation-calculator` (index.html at repo root).
+
+## New-saddle build spec (the active work)
+Target action at the 12th fret: **2.0 mm low E → 1.6 mm high E** (down from 2.64 mm
+measured on the 6th). That's a uniform ~0.64 mm action drop = ~1.28 mm lower saddle.
+
+Saddle blank: **75 mm long × 3 mm thick**, flat base. String spacing 11 mm →
+55 mm spread, 10 mm clear at each end.
+
+Per-string targets (string position measured from the **bass end**; height from the
+flat **base** to the crest at the break point; break measured forward from the
+**back/pin-side face**):
+
+| String | Pos from bass end | Crest height | Break from back face |
+|--------|-------------------|--------------|----------------------|
+| 6 E2   | 10 mm | 6.42 mm | 3.00 mm (front face) |
+| 5 A2   | 21 mm | 6.72 mm | 3.00 mm (front face) |
+| 4 D3   | 32 mm | 6.92 mm | 3.00 mm (front face) |
+| 3 G3   | 43 mm | 6.83 mm | 3.00 mm (front face) |
+| 2 B3   | 54 mm | 6.52 mm | 1.83 mm |
+| 1 E4   | 65 mm | 5.61 mm | 1.99 mm |
+
+Notes:
+- The four bass strings' ideal breaks fall *in front of* the 3 mm slot, so they are
+  **clamped to the front face**; this leaves the low E ~3 cents flat (within noise).
+- Crest heights are the old saddle's profile lowered 1.28 mm; they give the ~420 mm
+  radius + bass tilt and hit 2.0 / 1.6 at the 12th.
+- Top profile = 400 mm radius across the length + bass-side raised ~0.8 mm (the
+  bass end stands ~1.1 mm proud of the treble end).
+- The B-string height reading was a noisy outlier; the model fairs it onto the curve.
+
+Reference data (base→crest heights, mm) — old saddle vs. an over-sanded blank:
+```
+str  old   blank(scrapped)
+6   7.70   7.75
+5   8.00   8.32
+4   8.20   8.56
+3   8.11   8.40
+2   7.80   7.41
+1   6.89   6.59
+```
+
+## Files
+(Layout is flat at the repo root — `index.html`, `README.md`, `saddle/`, `vendor/`.)
+- `index.html` — the calculator (open directly in a browser). Section 06 also
+  **generates a parametric OpenSCAD saddle** (`Download .scad`): crest heights are
+  derived from the as-built Action f12 + target action @12th (uniform base-sand or
+  per-string, both overridable); the fore-aft break of each string's crown comes
+  from the live compensation result. Default state reproduces `saddle_reference.stl`
+  (uniform −1.28 mm). Output is a faired radius+tilt top via a hull-lofted solid.
+  `saddleModel()` is the single source of geometry; `generateScad()` emits the text.
+  Section 06 also has an **in-page 3D preview** that runs the *actual generated
+  `.scad`* through **OpenSCAD compiled to WebAssembly** (`vendor/openscad.wasm`),
+  reads back the STL, and shows it with three.js + OrbitControls. The ~8 MB engine
+  lazy-loads on the first "Render preview" click; a fresh wasm instance is made per
+  render (Emscripten `callMain` is single-shot). `buildStl()` is the shared
+  "run the .scad → STL bytes" step; both the preview and the **Download .stl**
+  button use it (the latter exports the mesh straight to a file).
+- `vendor/` — self-contained deps, no CDN (keeps the tool offline / Pages-friendly):
+  `three.module.min.js` (r160), `OrbitControls.js`, `STLLoader.js`, and the OpenSCAD
+  wasm trio `openscad.js` + `openscad.wasm.js` + `openscad.wasm` (release 2022.03.20,
+  core build — fonts/MCAD omitted; the model uses neither).
+- `README.md` — repo readme / Pages notes.
+- `saddle/mk_stl.py` — **parametric** STL generator. Edit the arrays at the top
+  (`strpos`, `crest`, `qbreak`, `LEN`, `TH`, crown `C`) and rerun:
+  `python3 mk_stl.py` → writes the STL. Currently writes to an absolute path; change
+  the `out=` line to a local path.
+- `saddle/saddle_reference.stl` — current 1:1 solid replica (75×3 mm, ~30k tris).
+
+## Open / likely next steps
+- Deploy `web/` to GitHub Pages (public repo for a free account).
+- Saddle reference variants the chat offered but didn't build: a **check-gauge**
+  (negative profile comb) and a **holding cradle**. (OpenSCAD parametric export is
+  now built into `web/index.html` §06.)
+- After building: strobe-verify intonation at the new action and fine-tune; recheck
+  neck relief / 1st-fret buzz once action drops.

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nut &amp; Saddle Compensation — Luthier's Tool</title>
+<style>
+  :root{
+    --bench:#241a12; --bench2:#2e2116;
+    --bone:#f4ead8; --bone2:#ece0c9; --bone-edge:#dcc9a8;
+    --ink:#2a1d12; --ink-soft:#6f5b46; --ink-faint:#9a866d;
+    --brass:#a8821f; --brass-bright:#caa033;
+    --steel:#8a8a8a; --steel-line:#b7ab95;
+    --alert:#9c2d18; --alert-bg:#f3d9cf;
+    --ok:#5a6e36;
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bench);
+    background-image:repeating-linear-gradient(92deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 26px,rgba(255,255,255,.012) 27px,rgba(0,0,0,0) 30px);
+    color:var(--bone); font-family:var(--body); line-height:1.5;
+    padding:clamp(14px,3vw,40px);
+  }
+  .wrap{max-width:1060px;margin:0 auto}
+
+  /* masthead */
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--brass-bright);margin:0 0 10px}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,6vw,52px);line-height:1.02;margin:0;letter-spacing:-.01em}
+  h1 em{font-style:italic;color:var(--brass-bright)}
+  .lede{max-width:60ch;color:#d8c8ad;margin:14px 0 0;font-size:15px}
+  .rule{height:1px;background:linear-gradient(90deg,var(--brass) 0%,transparent 70%);margin:26px 0 30px}
+
+  /* panels = bone "drawing paper" */
+  .panel{background:var(--bone);color:var(--ink);border:1px solid var(--bone-edge);border-radius:3px;
+    padding:clamp(16px,2.4vw,26px);margin-bottom:22px;
+    box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 14px 30px -22px rgba(0,0,0,.8)}
+  .panel > h2{font-family:var(--display);font-weight:600;font-size:21px;margin:0 0 2px;color:var(--ink)}
+  .panel > .note{font-size:13px;color:var(--ink-soft);margin:0 0 18px}
+  .secnum{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--brass);display:block;margin-bottom:4px}
+
+  /* form fields */
+  .grid{display:grid;gap:14px 18px}
+  .g-global{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px}
+  label .u{color:var(--ink-faint)}
+  input[type=number],select{width:100%;font-family:var(--mono);font-size:15px;color:var(--ink);
+    background:#fffdf7;border:1px solid var(--bone-edge);border-radius:2px;padding:8px 9px}
+  input[type=number]:focus,select:focus{outline:2px solid var(--brass);outline-offset:-1px;border-color:var(--brass)}
+  .toggle{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink);margin-top:6px}
+  .toggle input{width:18px;height:18px;accent-color:var(--brass)}
+
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .presets button{font-family:var(--mono);font-size:12px;letter-spacing:.02em;cursor:pointer;
+    background:#fffdf7;border:1px solid var(--bone-edge);color:var(--ink);padding:7px 11px;border-radius:2px}
+  .presets button:hover{border-color:var(--brass);color:var(--brass)}
+
+  .subhead{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);
+    margin:24px 0 10px;border-top:1px solid var(--bone-edge);padding-top:14px}
+
+  /* tables */
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+  th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--bone-edge)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);vertical-align:bottom;border-bottom:1.5px solid var(--ink)}
+  tbody td{font-family:var(--mono);color:var(--ink)}
+  tbody td:first-child{font-family:var(--body);font-weight:500}
+  .inrow td{padding:5px 6px}
+  .inrow input{padding:6px 7px;font-size:13px;min-width:74px}
+  .num{font-variant-numeric:tabular-nums}
+  .strong{color:var(--brass);font-weight:600}
+
+  /* results emphasis */
+  .res td.s,.res td.n{font-weight:600}
+  .res td.s{color:var(--ink)}
+  .res tbody tr:hover{background:var(--bone2)}
+
+  /* charts / drawings */
+  .draw{background:#fbf6ea;border:1px solid var(--bone-edge);border-radius:2px;padding:6px}
+  svg{display:block;width:100%;height:auto}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .tabs button{font-family:var(--mono);font-size:12px;cursor:pointer;background:transparent;border:1px solid var(--bone-edge);
+    color:var(--ink-soft);padding:6px 10px;border-radius:2px}
+  .tabs button.on{background:var(--ink);color:var(--bone);border-color:var(--ink)}
+
+  .banner{font-family:var(--body);font-size:13.5px;border-radius:2px;padding:12px 14px;margin:14px 0 4px;border:1px solid}
+  .banner.ok{background:#eef0e2;border-color:#c4cda3;color:var(--ok)}
+  .banner.warn{background:var(--alert-bg);border-color:#d8a48f;color:var(--alert)}
+  .banner b{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:11px;display:block;margin-bottom:3px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink-soft);margin-top:10px;font-family:var(--mono)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:3px;display:inline-block;border-radius:2px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+  .twocol{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:780px){.twocol{grid-template-columns:1.15fr .85fr;align-items:start}}
+
+  footer{color:#c8b89c;font-size:12.5px;max-width:78ch;margin:30px auto 6px}
+  footer h3{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass-bright);margin:0 0 8px}
+  footer p{margin:0 0 9px}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Luthier's intonation tool · Gore method</p>
+  <h1>Nut &amp; Saddle <em>Compensation</em></h1>
+  <p class="lede">Per-string saddle setback and nut offset that flatten the intonation error across the whole fretboard, fitted to a guitar you've already built. Enter the setup; read the break points and a shop drawing for the bench.</p>
+  <div class="rule"></div>
+
+  <!-- SETUP -->
+  <section class="panel">
+    <span class="secnum">01 — Setup</span>
+    <h2>Instrument &amp; strings</h2>
+    <p class="note">Everything recalculates as you type. Load a preset, then adjust to your own strings and action for the best fit.</p>
+
+    <div class="grid g-global">
+      <div><label>Scale length <span class="u">mm</span></label><input type="number" id="scale" value="634" step="0.1"></div>
+      <div><label>Frets to optimise</label><input type="number" id="frets" value="19" step="1" min="5" max="24"></div>
+      <div>
+        <label>Bending stiffness</label>
+        <div class="toggle"><input type="checkbox" id="stiff"><span>include (off = pure Gore)</span></div>
+      </div>
+      <div>
+        <label>Nut compensation</label>
+        <div class="toggle"><input type="checkbox" id="nutEnabled" checked><span>compensate the nut</span></div>
+      </div>
+      <div>
+        <label>String set</label>
+        <select id="presetSel">
+          <optgroup label="D'Addario · Phosphor Bronze">
+            <option value="dadd-10">Extra Light .010–.047 (EJ15)</option>
+            <option value="dadd-11">Custom Light .011–.052 (EJ26)</option>
+            <option value="dadd-12">Light .012–.053 (EJ16)</option>
+            <option value="dadd-13">Medium .013–.056 (EJ17)</option>
+          </optgroup>
+          <optgroup label="Martin · Phosphor Bronze">
+            <option value="martin-10">Extra Light .010–.047</option>
+            <option value="martin-11">Custom Light .011–.052</option>
+            <option value="martin-12">Light .012–.054</option>
+            <option value="martin-13">Medium .013–.056</option>
+          </optgroup>
+          <optgroup label="Elixir · Phosphor Bronze">
+            <option value="elixir-10">Extra Light .010–.047</option>
+            <option value="elixir-11">Custom Light .011–.052</option>
+            <option value="elixir-12">Light .012–.053</option>
+            <option value="elixir-13">Medium .013–.056</option>
+          </optgroup>
+          <optgroup label="John Pearse · Phosphor Bronze">
+            <option value="jp-10">Extra Light .010–.047 (500XL)</option>
+            <option value="jp-11">Slightly Light .011–.052 (570)</option>
+            <option value="jp-12" selected>Light .012–.053 (600L)</option>
+            <option value="jp-13">Medium .013–.056 (700M)</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <div class="subhead">As-built saddle &amp; nut</div>
+    <div class="grid g-global">
+      <div><label id="lblD6">6th-string saddle <span class="u">centre, mm from nut</span></label><input type="number" id="d6" value="639.5" step="0.1"></div>
+      <div><label id="lblD1">1st-string saddle <span class="u">centre, mm from nut</span></label><input type="number" id="d1" value="635" step="0.1"></div>
+      <div><label>Saddle slot width <span class="u">mm</span></label><input type="number" id="sw" value="3" step="0.1"></div>
+      <div><label>String spread at saddle <span class="u">mm</span></label><input type="number" id="spread" value="54.6" step="0.5"></div>
+      <div><label>Distance reference</label><div class="toggle"><input type="checkbox" id="refEdge"><span>to inner (break) edge</span></div></div>
+    </div>
+    <p class="note" style="margin-top:12px">Distances run nut → the slot centre, or the inner break edge if toggled. The break point can be shaped anywhere within the slot width.</p>
+
+    <div class="subhead">Per-string parameters</div>
+    <div class="scroll">
+      <table id="instab">
+        <thead><tr>
+          <th>String</th><th>Pitch (Hz)</th><th>Density (g/m)</th><th>Core ⌀ (mm)</th>
+          <th>E (GPa)</th><th>Action f1 (mm)</th><th>Action f12 (mm)</th>
+        </tr></thead>
+        <tbody id="inbody"></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:10px">Density: D'Addario unit weight × 17858 = g/m. Wound strings: enter the <em>core</em> diameter, not the overall diameter.</p>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="panel">
+    <span class="secnum">02 — Result</span>
+    <h2>Compensation per string</h2>
+    <p class="note">Saddle = move the break point away from the nut. Nut = shift the break point toward the 1st fret (forward).</p>
+    <div class="scroll">
+      <table class="res"><thead><tr>
+        <th>String</th><th>Saddle (mm)</th><th>Nut (mm)</th><th>Error before (¢ rms)</th><th>Error after (¢ rms)</th>
+      </tr></thead><tbody id="resbody"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ERROR CURVE -->
+  <section class="panel">
+    <span class="secnum">03 — Intonation error</span>
+    <h2>Before &amp; after, by fret</h2>
+    <p class="note">Cents sharp at each fretted note. Compensation pulls the whole curve toward zero. Tap or hover the graph to read the exact value at any fret.</p>
+    <div class="tabs" id="curveTabs"></div>
+    <div class="draw"><div id="curve"></div></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--steel)"></span>before</span>
+      <span><span class="swatch" style="background:var(--brass)"></span>after</span>
+    </div>
+  </section>
+
+  <!-- SADDLE DRAWING -->
+  <section class="panel">
+    <span class="secnum">04 — Saddle</span>
+    <h2>Break-point map</h2>
+    <p class="note">Top view of the existing slot. A marker shows where each string must break; if it falls outside the slot it turns red. In the table, "peak from front edge" is the file-to point — a value below 0 or above the slot width means the ideal break lands outside the slot (negative = in front of it, toward the nut).</p>
+    <div id="saddleBanner"></div>
+    <div class="twocol">
+      <div class="draw"><div id="saddleDraw"></div></div>
+      <div class="scroll">
+        <table><thead><tr><th>String</th><th>Ideal break from nut (mm)</th><th id="thSlotRef">Centre from nut (mm)</th><th>Peak from front edge (mm)</th><th>Fits</th></tr></thead>
+        <tbody id="saddleTab"></tbody></table>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--ink)"></span>slot edges</span>
+      <span><span class="swatch" style="background:var(--steel);height:0;border-top:2px dashed var(--steel)"></span><span id="legCentre">slot centre</span></span>
+      <span><span class="dot" style="background:var(--brass)"></span>break point</span>
+      <span class="tag">fore-aft axis exaggerated — read the table for exact mm</span>
+    </div>
+  </section>
+
+  <!-- NUT DRAWING -->
+  <section class="panel">
+    <span class="secnum">05 — Nut</span>
+    <h2>Compensation from the straight line</h2>
+    <p class="note">The original nut is a straight line. Each string's break point shifts forward (toward the 1st fret) or back, cut by filing the nut's front face per string.</p>
+    <div class="twocol">
+      <div class="draw"><div id="nutDraw"></div></div>
+      <div class="scroll">
+        <table><thead><tr><th>String</th><th>Offset (mm)</th><th>Direction</th></tr></thead>
+        <tbody id="nutTab"></tbody></table>
+      </div>
+    </div>
+    <p class="note" id="nutFallback" style="margin-top:14px"></p>
+  </section>
+
+  <!-- 3D SADDLE / OPENSCAD -->
+  <section class="panel">
+    <span class="secnum">06 — 3D model</span>
+    <h2>OpenSCAD saddle</h2>
+    <p class="note">Turns the numbers above into a printable / CNC-able 3D saddle. The top profile is faired to a smooth radius-and-tilt curve through the per-string crest heights; each string's crown peaks exactly on its computed break point. Download the parametric <span class="tag">.scad</span> and open it in OpenSCAD to render or export an STL — every value sits in editable variables at the top of the file.</p>
+
+    <div class="subhead">Blank</div>
+    <div class="grid g-global">
+      <div><label>Blank length <span class="u">mm</span></label><input type="number" id="sadLen" value="75" step="0.5"></div>
+      <div><label>Thickness <span class="u">= slot width</span></label><input type="number" id="sadTh" value="3" step="0.1" disabled></div>
+      <div><label>Break-edge slope <span class="u">degrees</span></label><input type="number" id="bevelDeg" value="30" step="1" min="5" max="80"></div>
+      <div><label>String spread <span class="u">from §01</span></label><input type="number" id="sadSpread" value="54.6" step="0.5" disabled></div>
+      <div><label>Trim bass end <span class="u">mm</span></label><input type="number" id="trimL" value="0" step="0.5" min="0"></div>
+      <div><label>Trim treble end <span class="u">mm</span></label><input type="number" id="trimR" value="0" step="0.5" min="0"></div>
+    </div>
+    <p class="note" style="margin-top:10px">Thickness follows the saddle slot width and string spread follows §01 — change them there. Strings are centred on the blank, leaving equal margins at each end (~<span id="endMargin">10.2</span>&nbsp;mm). Trim cuts material off each end so the piece drops into a shorter or round-ended slot — the strings don't move, so keep each trim under the end margin.</p>
+
+    <div class="subhead">Top profile from action</div>
+    <div class="grid g-global">
+      <div>
+        <label>Height model</label>
+        <div class="toggle"><input type="checkbox" id="perString"><span>per-string (off = uniform base sand)</span></div>
+      </div>
+      <div><label>Target action @ 12th · bass <span class="u">mm</span></label><input type="number" id="actBass" value="2.0" step="0.05"></div>
+      <div><label>Target action @ 12th · treble <span class="u">mm</span></label><input type="number" id="actTreb" value="1.6" step="0.05"></div>
+    </div>
+    <p class="note" style="margin-top:10px">Crest heights are derived from your as-built <em>Action f12</em> (§01) and these targets: a lower string drops the saddle ~2&times; the action drop. <b>Uniform</b> lowers every crest by the single amount the tightest string needs (a base sand); <b>per-string</b> shapes each crest to hit its own target. Edit any <em>New crest</em> to override — overridden rows are left untouched until you reset.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>String</th><th>As-built f12 (mm)</th><th>Old saddle crest (mm)</th><th>New crest (mm)</th></tr></thead>
+        <tbody id="sadHeights"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px">
+      <div class="presets" style="margin-top:0">
+        <button id="dlScad">Download .scad</button>
+        <button id="resetHeights">Reset heights</button>
+      </div>
+      <span class="tag" id="sadStatus"></span>
+    </div>
+
+    <div class="subhead">3D preview</div>
+    <div class="presets" style="margin-top:0">
+      <button id="render3d">Render preview</button>
+      <button id="dlStl">Download .stl</button>
+    </div>
+    <p class="note" style="margin-top:8px">Both run the generated code through OpenSCAD (WebAssembly) — the first use downloads the ~8&nbsp;MB engine.</p>
+    <div class="draw" style="padding:0;overflow:hidden;margin-top:12px;position:relative">
+      <div id="saddle3d" style="width:100%;height:360px;background:#161009;touch-action:none"></div>
+      <div id="render3dMsg" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:var(--mono);font-size:12.5px;color:#cdbb9d;pointer-events:none">The actual generated <span style="margin:0 4px" class="tag">.scad</span> is rendered here by OpenSCAD (WebAssembly). Click <b style="margin:0 4px">Render preview</b> — first run downloads the ~8&nbsp;MB engine.</div>
+    </div>
+    <div class="legend">
+      <span class="tag">each coplanar face is shaded a different colour · drag to rotate · scroll to zoom · right-drag to pan — rendered from the generated .scad by OpenSCAD itself</span>
+    </div>
+  </section>
+
+  <footer>
+    <h3>The model</h3>
+    <p>Fretting a string deflects it down to the fret, raising tension and sharpening the note — the dominant intonation error, after Trevor Gore. A single saddle setback nulls only one fret, so compensation is split between the saddle (upper register) and the nut (low frets), and solved per string by least-squares fit of the error curve. Bending stiffness is excluded by default per Gore's findings; the toggle adds it back (the Elmendorp/Mottola view) for comparison.</p>
+    <p class="tag">String presets use D'Addario's published wound-string unit weights with core diameters from their core rule; plain-string masses are computed from steel density. Brands at the same gauge differ only marginally, so the data is shared where the gauge sets match. Replace any value with your own measurements for a precise fit. All computation runs locally; nothing is sent anywhere.</p>
+  </footer>
+
+</div>
+
+<script>
+const STR = [
+  {name:"E2 (6th)", t:0.0},
+  {name:"A2 (5th)", t:0.2},
+  {name:"D3 (4th)", t:0.4},
+  {name:"G3 (3rd)", t:0.6},
+  {name:"B3 (2nd)", t:0.8},
+  {name:"E4 (1st)", t:1.0},
+];
+// Display order for every list/diagram: 1st string at the top, 6th at the bottom.
+// Data/physics keep the canonical index (0 = 6th); this only reorders presentation.
+const ORD = [5,4,3,2,1,0];
+const FIELDS = ["f","mu","dia","E","a1","a12"];
+// Wound-string unit weights (g/m) are D'Addario's published values; plain-string
+// masses are computed from steel density. Wound core diameters use D'Addario's
+// core rule (~.014 core at .024, ~.018 at .053). Order: low E, A, D, G, B, high E.
+const F=[82.41,110,146.83,196,246.94,329.63];
+const A1=[0.7,0.65,0.6,0.55,0.5,0.5], A12=[2.64,2.5,2.4,2.3,2.2,2.1], EE=[200,200,200,200,200,200];
+const P=(mu,dia)=>({f:F,mu,dia,E:EE,a1:A1,a12:A12});
+const PRESETS={
+  "dadd-10":P([8.09,5.56,3.33,1.93,0.780,0.398],[0.436,0.408,0.377,0.352,0.356,0.254]),
+  "dadd-11":P([9.86,6.56,3.75,1.76,0.895,0.481],[0.454,0.419,0.384,0.349,0.381,0.279]),
+  "dadd-12":P([10.17,6.56,3.75,2.09,1.018,0.573],[0.457,0.419,0.384,0.356,0.406,0.305]),
+  "dadd-13":P([11.34,7.46,4.53,2.44,1.150,0.672],[0.468,0.429,0.394,0.363,0.432,0.330]),
+  "martin-11":P([9.86,6.56,3.75,1.93,0.895,0.481],[0.454,0.419,0.384,0.352,0.381,0.279]),
+  "martin-12":P([10.56,6.56,3.75,2.27,1.018,0.573],[0.461,0.419,0.384,0.359,0.406,0.305]),
+  "jp-11":P([9.86,6.56,3.33,1.76,0.895,0.481],[0.454,0.419,0.377,0.349,0.381,0.279]),
+};
+["martin-10","elixir-10","jp-10"].forEach(k=>PRESETS[k]=PRESETS["dadd-10"]);
+PRESETS["elixir-11"]=PRESETS["dadd-11"];
+["elixir-12","jp-12"].forEach(k=>PRESETS[k]=PRESETS["dadd-12"]);
+["martin-13","elixir-13","jp-13"].forEach(k=>PRESETS[k]=PRESETS["dadd-13"]);
+
+const $ = id => document.getElementById(id);
+const log2 = x => Math.log(x)/Math.LN2;
+const fmt = (x,d=3)=> (x>=0?"":"−")+Math.abs(x).toFixed(d);
+
+function buildInputs(){
+  const tb = $("inbody");
+  ORD.forEach(i=>{
+    const s = STR[i];
+    const tr = document.createElement("tr"); tr.className="inrow";
+    tr.innerHTML = `<td>${s.name}</td>` + FIELDS.map(fl=>{
+      const step = fl==="f"?0.01:(fl==="E"?1:0.001);
+      return `<td><input type="number" data-i="${i}" data-f="${fl}" step="${step}"></td>`;
+    }).join("");
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",recompute));
+}
+function loadPreset(name){
+  const p = PRESETS[name];
+  document.querySelectorAll("#inbody input").forEach(inp=>{
+    inp.value = p[inp.dataset.f][+inp.dataset.i];
+  });
+  recompute();
+}
+function readInputs(){
+  const g = {scale:+$("scale").value, frets:Math.round(+$("frets").value), stiff:$("stiff").checked,
+    nut:$("nutEnabled").checked, refEdge:$("refEdge").checked,
+    d6:+$("d6").value, d1:+$("d1").value, sw:+$("sw").value, spread:+$("spread").value};
+  const rows = STR.map((s,i)=>({name:s.name,t:s.t}));
+  document.querySelectorAll("#inbody input").forEach(inp=>{
+    rows[+inp.dataset.i][inp.dataset.f] = +inp.value;
+  });
+  return {g,rows};
+}
+
+function computeString(g,p){
+  const L=g.scale/1000, f=p.f, mu=p.mu/1000, dc=p.dia/1000, E=p.E*1e9,
+        a1=p.a1/1000, a12=p.a12/1000, stiff=g.stiff?1:0, N=g.frets;
+  const T0=mu*Math.pow(2*L*f,2), EA=E*Math.PI/4*dc*dc, Kc=1200/Math.LN2;
+  const d1f=L*(1-Math.pow(2,-1/12)), d12f=L*0.5;
+  const B0=Math.pow(Math.PI,3)*E*Math.pow(dc,4)/(64*T0*L*L);
+  const b=-Kc/L;
+  let Saa=0,Suma=0,Sae=0,Sume=0, rows=[];
+  for(let n=1;n<=N;n++){
+    const dn=L*(1-Math.pow(2,-n/12)), Ln=L*Math.pow(2,-n/12);
+    const cn=a1+(a12-a1)*(dn-d1f)/(d12f-d1f);
+    const dL=(cn*cn/2)*(1/dn+1/Ln), dT=EA*dL/L;
+    const ed=600*log2(1+dT/T0);
+    const Bn=Math.pow(Math.PI,3)*E*Math.pow(dc,4)/(64*T0*Ln*Ln);
+    const es=stiff*600*log2((1+Bn)/(1+B0));
+    const eb=ed+es, an=Kc*(1/L-1/Ln);
+    Saa+=an*an; Suma+=an; Sae+=an*eb; Sume+=eb;
+    rows.push({n,eb,an});
+  }
+  const Sab=b*Suma, Sbb=b*b*N, Sbe=b*Sume, det=Saa*Sbb-Sab*Sab;
+  let ds, nut;
+  if(g.nut){
+    ds=(-Sbb*Sae+Sab*Sbe)/det; nut=(Sab*Sae-Saa*Sbe)/det;
+  } else {
+    ds=-Sae/Saa; nut=0;
+  }
+  let rb=0,ra=0;
+  rows.forEach(r=>{ r.ef=r.eb+r.an*ds+b*nut; rb+=r.eb*r.eb; ra+=r.ef*r.ef; });
+  return {saddle:ds*1000, nut:nut*1000, rmsB:Math.sqrt(rb/N), rmsA:Math.sqrt(ra/N), rows};
+}
+
+let RES=[], CUR=ORD[0];   // default-select the first string shown (1st / treble)
+
+function recompute(){
+  const {g,rows} = readInputs();
+  const rt = g.refEdge ? "inner edge" : "centre";
+  $("lblD6").innerHTML = `6th-string saddle <span class="u">${rt}, mm from nut</span>`;
+  $("lblD1").innerHTML = `1st-string saddle <span class="u">${rt}, mm from nut</span>`;
+  $("thSlotRef").textContent = (g.refEdge?"Inner edge":"Centre")+" from nut (mm)";
+  $("legCentre").textContent = "slot "+rt;
+  RES = rows.map(p=>({...p, ...computeString(g,p)}));
+  renderResults();
+  renderCurveTabs();
+  renderCurve(g);
+  renderSaddle(g);
+  renderNut(g);
+  if($("sadTh")){ $("sadTh").value=g.sw; $("sadSpread").value=g.spread;
+    $("endMargin").textContent=((+$("sadLen").value - g.spread)/2).toFixed(1); }
+  updateDerivedHeights();
+}
+
+function renderResults(){
+  $("resbody").innerHTML = ORD.map(i=>{ const r=RES[i]; return `<tr><td>${r.name}</td>`+
+    `<td class="s num">${fmt(r.saddle)}</td>`+
+    `<td class="n num strong">${fmt(r.nut)}</td>`+
+    `<td class="num">${r.rmsB.toFixed(2)}</td>`+
+    `<td class="num strong">${r.rmsA.toFixed(3)}</td></tr>`; }).join("");
+}
+
+function renderCurveTabs(){
+  $("curveTabs").innerHTML = ORD.map(i=>{ const r=RES[i]; return `<button class="${i===CUR?'on':''}" data-c="${i}">${r.name.split(" ")[0]}</button>`; }).join("");
+  $("curveTabs").querySelectorAll("button").forEach(b=>
+    b.addEventListener("click",()=>{CUR=+b.dataset.c; recompute();}));
+}
+
+// --- SVG line chart for a single string error curve ---
+function renderCurve(g){
+  const r = RES[CUR]; const W=720,H=300, m={l:46,r:14,t:18,b:34};
+  const xs=r.rows.map(p=>p.n);
+  const vals=[].concat(r.rows.map(p=>p.eb), r.rows.map(p=>p.ef), [0]);
+  let ymax=Math.max(...vals), ymin=Math.min(...vals);
+  const pad=(ymax-ymin)*0.12||1; ymax+=pad; ymin-=pad;
+  const X=n=>m.l+(n-1)/(g.frets-1)*(W-m.l-m.r);
+  const Y=v=>m.t+(ymax-v)/(ymax-ymin)*(H-m.t-m.b);
+  const path=key=>r.rows.map((p,i)=>(i?"L":"M")+X(p.n).toFixed(1)+","+Y(p[key]).toFixed(1)).join(" ");
+  // gridlines (cents)
+  let grid="";
+  const step = (ymax-ymin)>20?5:(ymax-ymin>8?2:1);
+  for(let v=Math.ceil(ymin/step)*step; v<=ymax; v+=step){
+    const y=Y(v).toFixed(1);
+    grid+=`<line x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="${v===0?'#b08a3a':'#e7dcc6'}" stroke-width="${v===0?1.3:1}"/>`;
+    grid+=`<text x="${m.l-7}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">${v}</text>`;
+  }
+  let ticks="";
+  [1,3,5,7,9,12,15,19].filter(n=>n<=g.frets).forEach(n=>{
+    ticks+=`<text x="${X(n)}" y="${H-12}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">${n}</text>`;
+  });
+  $("curve").innerHTML =
+    `<svg id="curveSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="error curve" style="touch-action:pan-y">
+      ${grid}
+      <text x="${W-m.r}" y="${m.t-5}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">cents sharp ↑</text>
+      <path d="${path('eb')}" fill="none" stroke="#8a8a8a" stroke-width="1.6"/>
+      <path d="${path('ef')}" fill="none" stroke="#a8821f" stroke-width="2.4"/>
+      ${ticks}
+      <text x="${(m.l+W-m.r)/2}" y="${H-1}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">fret</text>
+      <g id="curveHL"></g>
+      <rect id="curveHit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/>
+    </svg>`;
+  const svg=$("curveSvg"), hl=$("curveHL"), hit=$("curveHit");
+  function show(clientX){
+    const rc=svg.getBoundingClientRect();
+    const sx=(clientX-rc.left)/rc.width*W;
+    let n=Math.round((sx-m.l)/(W-m.l-m.r)*(g.frets-1))+1;
+    n=Math.max(1,Math.min(g.frets,n));
+    const p=r.rows[n-1], xx=X(n), tw=110, th=48;
+    let tx=xx+10; if(tx+tw>W-m.r) tx=xx-10-tw; tx=Math.max(m.l,tx);
+    const ty=m.t+2;
+    hl.innerHTML=
+      `<line x1="${xx}" y1="${m.t}" x2="${xx}" y2="${H-m.b}" stroke="#c9b48a" stroke-width="1"/>`+
+      `<circle cx="${xx}" cy="${Y(p.eb).toFixed(1)}" r="3.6" fill="#8a8a8a"/>`+
+      `<circle cx="${xx}" cy="${Y(p.ef).toFixed(1)}" r="3.6" fill="#a8821f"/>`+
+      `<rect x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="3" fill="#2a1d12" opacity="0.95"/>`+
+      `<text x="${tx+10}" y="${ty+16}" font-family="ui-monospace,monospace" font-size="11.5" fill="#f4ead8">fret ${n}</text>`+
+      `<text x="${tx+10}" y="${ty+30}" font-family="ui-monospace,monospace" font-size="10.5" fill="#cfcabb">before ${p.eb.toFixed(2)} ¢</text>`+
+      `<text x="${tx+10}" y="${ty+44}" font-family="ui-monospace,monospace" font-size="10.5" fill="#caa033">after&#160;&#160;${p.ef.toFixed(2)} ¢</text>`;
+  }
+  hit.addEventListener("pointermove",e=>show(e.clientX));
+  hit.addEventListener("pointerdown",e=>show(e.clientX));
+  hit.addEventListener("pointerleave",()=>{hl.innerHTML="";});
+}
+
+// --- Saddle top-view drawing ---
+function renderSaddle(g){
+  const off = g.refEdge ? g.sw/2 : 0;
+  const data = RES.map(r=>{
+    const ideal=g.scale+r.saddle;
+    const ref=g.d6+(g.d1-g.d6)*r.t;
+    const centre=ref+off;
+    const inner=centre-g.sw/2;
+    const offC=ideal-centre;
+    const front=ideal-inner;
+    const fits=Math.abs(offC)<=g.sw/2+1e-9;
+    return {name:r.name, t:r.t, ideal, ref, centre, inner, offC, front, fits, y:g.spread*r.t};
+  });
+  const anyOut = data.some(d=>!d.fits);
+  $("saddleBanner").innerHTML = anyOut
+    ? `<div class="banner warn"><b>Warning · out of slot</b>One or more strings can't reach the ideal break point inside the existing slot. Re-route or relocate the slot, widen it, or accept the clamped position (and the intonation loss).</div>`
+    : `<div class="banner ok"><b>Clear</b>Every ideal break point falls within the existing saddle slot.</div>`;
+
+  $("saddleTab").innerHTML = ORD.map(i=>{ const d=data[i]; return `<tr><td>${d.name}</td>`+
+    `<td class="num strong">${fmt(d.ideal,2)}</td>`+
+    `<td class="num">${fmt(d.ref,2)}</td>`+
+    `<td class="num">${fmt(d.front,2)}</td>`+
+    `<td style="text-align:right;color:${d.fits?'var(--ok)':'var(--alert)'};font-family:var(--mono);font-size:12px">${d.fits?'fits':'OUT'}</td></tr>`; }).join("");
+
+  // geometry
+  const W=560,H=300, m={l:58,r:20,t:26,b:30};
+  const xsAll=[].concat(data.map(d=>d.inner), data.map(d=>d.inner+g.sw), data.map(d=>d.ideal));
+  let xmin=Math.min(...xsAll), xmax=Math.max(...xsAll);
+  const xpad=(xmax-xmin)*0.18||1; xmin-=xpad; xmax+=xpad;
+  const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
+  const Y=y=>m.t+(1-y/g.spread)*(H-m.t-m.b);   // 1st string (t=1) at top, 6th (t=0) at bottom
+  // slot parallelogram
+  const cen6=g.d6+off, cen1=g.d1+off, hw=g.sw/2;
+  const poly=[[cen6-hw,0],[cen1-hw,g.spread],[cen1+hw,g.spread],[cen6+hw,0]]
+    .map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
+  const centreLine=`<line x1="${X(g.d6)}" y1="${Y(0)}" x2="${X(g.d1)}" y2="${Y(g.spread)}" stroke="#8a8a8a" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+  // string rows + markers
+  let rows="";
+  data.forEach(d=>{
+    const y=Y(d.y).toFixed(1);
+    rows+=`<line x1="${m.l-4}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="#ece1cb" stroke-width="1"/>`;
+    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${d.name.split(" ")[0]}</text>`;
+    const col=d.fits?"#a8821f":"#9c2d18";
+    rows+=`<circle cx="${X(d.ideal).toFixed(1)}" cy="${y}" r="5" fill="${col}" stroke="#fbf6ea" stroke-width="1.2"/>`;
+    if(!d.fits) rows+=`<text x="${X(d.ideal).toFixed(1)}" y="${(+y-8)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#9c2d18">!</text>`;
+  });
+  // x scale ticks
+  let ax="";
+  const span=xmax-xmin, st= span>8?2:(span>4?1:0.5);
+  for(let v=Math.ceil(xmin/st)*st; v<=xmax; v+=st){
+    ax+=`<line x1="${X(v)}" y1="${H-m.b}" x2="${X(v)}" y2="${H-m.b+4}" stroke="#b7ab95"/>`;
+    ax+=`<text x="${X(v)}" y="${H-m.b+15}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" fill="#9a866d">${v.toFixed(st<1?1:0)}</text>`;
+  }
+  $("saddleDraw").innerHTML=
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="saddle map">
+      <polygon points="${poly}" fill="#efe2c6" stroke="#2a1d12" stroke-width="1.4"/>
+      ${centreLine}${rows}${ax}
+      <text x="${(m.l+W-m.r)/2}" y="${H-2}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" fill="#9a866d">distance from nut (mm)</text>
+    </svg>`;
+}
+
+// --- Nut top-view drawing ---
+function renderNut(g){
+  const data = RES.map(r=>({name:r.name, off:r.nut, y:g.spread*r.t}));
+  $("nutTab").innerHTML = ORD.map(i=>{ const d=data[i];
+    const dir = d.off>0.0005?"forward → 1st fret":(d.off<-0.0005?"back → head":"on line");
+    const col = d.off>0.0005?"var(--ink)":(d.off<-0.0005?"var(--alert)":"var(--ink-soft)");
+    return `<tr><td>${d.name}</td><td class="num strong">${fmt(d.off)}</td>`+
+      `<td style="text-align:right;font-size:12px;color:${col}">${dir}</td></tr>`;
+  }).join("");
+  const avg = data.reduce((s,d)=>s+d.off,0)/data.length;
+  $("nutFallback").innerHTML = `Prefer to keep the nut a single straight line? Shift the whole nut forward by <span class="strong" style="font-family:var(--mono)">${fmt(avg)} mm</span>. Convention: + offset = forward, toward the 1st fret (shortens the open string).`;
+
+  const W=560,H=300, m={l:58,r:24,t:26,b:40};
+  const maxoff=Math.max(0.15, ...data.map(d=>Math.abs(d.off)));
+  const xmin=-maxoff*1.5, xmax=maxoff*1.5;
+  const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
+  const Y=y=>m.t+(1-y/g.spread)*(H-m.t-m.b);   // 1st string at top, 6th at bottom
+  let rows="";
+  data.forEach(d=>{
+    const y=Y(d.y).toFixed(1);
+    rows+=`<line x1="${m.l-4}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="#ece1cb" stroke-width="1"/>`;
+    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${d.name.split(" ")[0]}</text>`;
+    rows+=`<circle cx="${X(d.off).toFixed(1)}" cy="${y}" r="5" fill="#a8821f" stroke="#fbf6ea" stroke-width="1.2"/>`;
+  });
+  // nut line at 0
+  const line=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(g.spread)}" stroke="#2a1d12" stroke-width="1.8"/>`;
+  // scale bar
+  const sb=maxoff>=1?1:(maxoff>=0.5?0.5:(maxoff>=0.2?0.2:0.1));
+  const bx0=X(0), bx1=X(sb), by=H-18;
+  const bar=`<line x1="${bx0}" y1="${by}" x2="${bx1}" y2="${by}" stroke="#6f5b46" stroke-width="1.4"/>
+    <line x1="${bx0}" y1="${by-3}" x2="${bx0}" y2="${by+3}" stroke="#6f5b46"/>
+    <line x1="${bx1}" y1="${by-3}" x2="${bx1}" y2="${by+3}" stroke="#6f5b46"/>
+    <text x="${(bx0+bx1)/2}" y="${by-5}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" fill="#6f5b46">${sb} mm</text>`;
+  const arrow=`<text x="${W-m.r}" y="${m.t-6}" text-anchor="end" font-family="ui-monospace,monospace" font-size="9.5" fill="#9a866d">forward → 1st fret</text>`;
+  $("nutDraw").innerHTML=
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="nut map">
+      ${rows}${line}${arrow}${bar}
+      <text x="${m.l-9}" y="${Y(0)-9}" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" fill="#9a866d">nut line</text>
+    </svg>`;
+}
+
+$("presetSel").addEventListener("change",()=>loadPreset($("presetSel").value));
+["scale","frets","stiff","nutEnabled","d6","d1","sw","spread"].forEach(id=>
+  $(id).addEventListener("input",recompute));
+$("refEdge").addEventListener("change",()=>{
+  const w=+$("sw").value, delta=$("refEdge").checked?-w/2:w/2;
+  $("d6").value=(+$("d6").value+delta).toFixed(3);
+  $("d1").value=(+$("d1").value+delta).toFixed(3);
+  recompute();
+});
+
+// ============================================================
+//  3D saddle / OpenSCAD generation
+// ============================================================
+const REF_CREST = [7.70, 8.00, 8.20, 8.11, 7.80, 6.89]; // old saddle, base->crest (mm)
+
+// least-squares quadratic  y = a x^2 + b x + c
+function solve3(M, v){
+  const a=[[...M[0],v[0]],[...M[1],v[1]],[...M[2],v[2]]];
+  for(let c=0;c<3;c++){
+    let piv=c; for(let r=c+1;r<3;r++) if(Math.abs(a[r][c])>Math.abs(a[piv][c])) piv=r;
+    [a[c],a[piv]]=[a[piv],a[c]];
+    const d=a[c][c]; for(let k=c;k<4;k++) a[c][k]/=d;
+    for(let r=0;r<3;r++) if(r!==c){ const f=a[r][c]; for(let k=c;k<4;k++) a[r][k]-=f*a[c][k]; }
+  }
+  return [a[0][3],a[1][3],a[2][3]];
+}
+function quadFit(xs,ys){
+  let S0=xs.length,S1=0,S2=0,S3=0,S4=0,Sy=0,Sxy=0,Sx2y=0;
+  for(let i=0;i<xs.length;i++){const x=xs[i],y=ys[i],x2=x*x;
+    S1+=x;S2+=x2;S3+=x2*x;S4+=x2*x2;Sy+=y;Sxy+=x*y;Sx2y+=x2*y;}
+  return solve3([[S4,S3,S2],[S3,S2,S1],[S2,S1,S0]],[Sx2y,Sxy,Sy]); // [a,b,c]
+}
+
+function buildSadHeights(){
+  $("sadHeights").innerHTML = ORD.map(i=>{ const s=STR[i]; return `<tr><td>${s.name.split(" ")[0]}</td>`+
+    `<td class="num" data-f12="${i}">—</td>`+
+    `<td><input type="number" step="0.01" data-ref="${i}" value="${REF_CREST[i].toFixed(2)}"></td>`+
+    `<td><input type="number" step="0.01" data-sc="${i}"></td></tr>`; }).join("");
+  document.querySelectorAll('#sadHeights input[data-ref]').forEach(inp=>
+    inp.addEventListener("input",updateDerivedHeights));
+  document.querySelectorAll('#sadHeights input[data-sc]').forEach(inp=>
+    inp.addEventListener("input",e=>{ e.target.dataset.locked="1"; }));
+}
+
+// derive crest heights from as-built action + targets; fill non-overridden rows
+function updateDerivedHeights(){
+  if(!$("sadHeights") || !RES.length) return;
+  const bass=+$("actBass").value, treb=+$("actTreb").value, per=$("perString").checked;
+  const drops = RES.map((r,i)=> 2*(r.a12 - (bass+(treb-bass)*STR[i].t)));
+  const uniform = Math.max(...drops);
+  RES.forEach((r,i)=>{
+    const cell=document.querySelector(`#sadHeights td[data-f12="${i}"]`);
+    if(cell) cell.textContent = r.a12.toFixed(2);
+    const inp=document.querySelector(`#sadHeights input[data-sc="${i}"]`);
+    if(!inp || inp.dataset.locked) return;
+    const refv=+document.querySelector(`#sadHeights input[data-ref="${i}"]`).value;
+    inp.value = (refv - (per?drops[i]:uniform)).toFixed(2);
+  });
+  $("sadStatus").textContent = per
+    ? "Per-string: each crest shaped to its own target."
+    : `Uniform: every crest lowered ${uniform.toFixed(2)} mm (tightest string).`;
+  if($("endMargin")) $("endMargin").textContent=((+$("sadLen").value - (+$("spread").value))/2).toFixed(1);
+}
+function resetHeights(){
+  document.querySelectorAll('#sadHeights input[data-sc]').forEach(inp=>delete inp.dataset.locked);
+  updateDerivedHeights();
+}
+
+// Shared geometry source for both the .scad text and the in-page 3D preview.
+function saddleModel(){
+  const {g} = readInputs();
+  const length=+$("sadLen").value, thickness=g.sw, bevel=+$("bevelDeg").value;
+  const trimL=Math.max(0,+$("trimL").value), trimR=Math.max(0,+$("trimR").value);
+  const spread=g.spread, margin=(length-spread)/2;
+  const strpos=[], crests=[], breaks=[];
+  RES.forEach((r,i)=>{
+    const t=STR[i].t, p=margin+spread*t;
+    const off=g.refEdge?g.sw/2:0;
+    const inner=g.d6+(g.d1-g.d6)*t+off-g.sw/2;
+    const ideal=g.scale+r.saddle;
+    const front=Math.max(0,Math.min(thickness, ideal-inner));
+    strpos.push(p); breaks.push([p,front]);
+    crests.push(+document.querySelector(`#sadHeights input[data-sc="${i}"]`).value);
+  });
+  return {g, length, thickness, bevel, trimL, trimR, strpos, crests, breaks, ca:quadFit(strpos,crests)};
+}
+window.saddleModel = saddleModel;
+
+function generateScad(){
+  const {g, length, thickness, bevel, trimL, trimR, strpos, crests, breaks, ca} = saddleModel();
+  const n=x=>(+x).toFixed(4);
+  const breakStr=breaks.map(b=>`[${n(b[0])}, ${n(b[1])}]`).join(", ");
+  const pairStr=strpos.map((p,i)=>`//   ${STR[i].name.padEnd(9)} p=${n(p)}  crest=${crests[i].toFixed(2)}  break(from front face)=${n(breaks[i][1])}`).join("\n");
+  const today=new Date().toISOString().slice(0,10);
+  return `// Acoustic guitar saddle — generated by the Nut & Saddle Compensation tool
+// ${today}
+// scale ${g.scale} mm   slot ${g.d6}->${g.d1} mm from nut   targets f12 ${(+$("actBass").value)}/${(+$("actTreb").value)} mm
+//
+// Per-string layout (position along blank, bass->treble; break from nut-side face):
+${pairStr}
+
+/* ---------------- editable parameters ---------------- */
+length    = ${n(length)};   // along the saddle, bass -> treble
+thickness = ${n(thickness)};   // fore-aft (= saddle slot width)
+bevel     = ${n(bevel)};   // break-edge slope, degrees down from the crest
+trimL     = ${n(trimL)};   // cut off the bass end (p=0)
+trimR     = ${n(trimR)};   // cut off the treble end (p=length)
+
+mark_depth = 0.1;   // engraving depth into the front (nut-side) face
+mark_width = 0.4;   // width of each engraved line
+mark_len   = 2.5;   // length of each engraved line
+top_clear  = 1.0;   // leave the top 1 mm of the face unmarked
+
+// faired crest height:  Hc(p) = ca[0]*p^2 + ca[1]*p + ca[2]
+ca = [${n(ca[0])}, ${n(ca[1])}, ${n(ca[2])}];
+
+// break line: [position_along, break_q from nut-side face], piecewise-linear
+breaks = [${breakStr}];
+
+$fn = 48;
+/* ----------------------------------------------------- */
+
+function Hc(p) = ca[0]*p*p + ca[1]*p + ca[2];
+function qb(p) = lookup(p, breaks);
+// top falls away from the break line as a straight ramp at 'bevel' degrees
+function ztop(p,q) = Hc(p) - tan(bevel)*abs(q - qb(p));
+
+// cross-section: two ramps meeting at the crest (skip the peak if it's on a face)
+function topPts(p) = let(b = qb(p))
+    concat( [[0, ztop(p,0)]],
+            (b > 0 && b < thickness) ? [[b, Hc(p)]] : [],
+            [[thickness, ztop(p,thickness)]] );
+
+module xslice(p) {
+    translate([p,0,0]) rotate([90,0,90])
+        linear_extrude(height=0.02, center=true)
+            polygon(concat( [[0,0]], topPts(p), [[thickness,0]] ));
+}
+
+module loft() {
+    stations = [for(i=[0:length]) i];
+    for(i=[0:len(stations)-2])
+        hull() { xslice(stations[i]); xslice(stations[i+1]); }
+}
+
+module saddle() {
+    if (trimL > 0 || trimR > 0) {
+        // clip the ends flat so the piece fits a shorter / round-ended slot
+        intersection() {
+            loft();
+            translate([trimL, -1, -1]) cube([length - trimL - trimR, thickness + 2, length + 2]);
+        }
+    } else {
+        loft();
+    }
+}
+
+// --- front-face engraving (nut side, the q = 0 plane) ---
+cen = (trimL + length - trimR) / 2;            // lengthwise centre of the (trimmed) piece
+module groove(p, z0, z1) {                     // a vertical line cut mark_depth into the front face
+    translate([p - mark_width/2, -0.5, z0])
+        cube([mark_width, 0.5 + mark_depth, z1 - z0]);
+}
+module marks() {
+    groove(cen, 0, mark_len);                  // saddle centre — a tick up from the bottom
+    for (b = breaks) let (top = ztop(b[0], 0)) // each string centre — a tick down from the top
+        groove(b[0], max(0.4, top - top_clear - mark_len), top - top_clear);
+}
+
+// Mirror along the length: viewed from the nut-side (engraved) face, the bass end
+// must sit on the right. Everything (breaks, heights, engraving, trims) flips together.
+translate([length,0,0]) mirror([1,0,0]) difference() { saddle(); marks(); }
+echo(str("bbox length=", length, " thick=", thickness));
+`;
+}
+
+function downloadScad(){
+  const blob=new Blob([generateScad()],{type:"text/plain"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="saddle.scad";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+["sadLen","bevelDeg","actBass","actTreb"].forEach(id=>$(id).addEventListener("input",updateDerivedHeights));
+$("perString").addEventListener("change",updateDerivedHeights);
+$("dlScad").addEventListener("click",downloadScad);
+$("resetHeights").addEventListener("click",resetHeights);
+
+buildInputs();
+buildSadHeights();
+loadPreset("jp-12");
+</script>
+
+<!-- 3D preview: all classic scripts + base64-embedded wasm, so it also works
+     opened directly from disk (file://), where ES modules and fetch() are blocked. -->
+<script>
+(function(){
+const host = document.getElementById('saddle3d');
+const msg  = document.getElementById('render3dMsg');
+const btn  = document.getElementById('render3d');
+const stlBtn = document.getElementById('dlStl');
+const setMsg = (t)=>{ msg.style.display = t ? 'flex' : 'none'; if(t) msg.innerHTML = t; };
+
+// ---- lazy loaders (no fetch, no modules: file://-safe) ----
+function loadScript(src){
+  return new Promise((res,rej)=>{ const s=document.createElement('script');
+    s.src=src; s.onload=()=>res(); s.onerror=()=>rej(new Error('could not load '+src));
+    document.head.appendChild(s); });
+}
+let threeReady=false;
+async function ensureThree(){
+  if(threeReady) return;
+  await loadScript('vendor/three.min.js');          // defines global THREE
+  await loadScript('vendor/three.OrbitControls.js'); // -> THREE.OrbitControls
+  await loadScript('vendor/three.STLLoader.js');     // -> THREE.STLLoader
+  threeReady=true;
+}
+let wasmBytes=null;
+async function getWasmBytes(){
+  if(wasmBytes) return wasmBytes;
+  await loadScript('vendor/openscad.wasm.b64.js');   // sets window.__OPENSCAD_WASM_B64
+  const bin=atob(window.__OPENSCAD_WASM_B64); const n=bin.length;
+  const u=new Uint8Array(n); for(let i=0;i<n;i++) u[i]=bin.charCodeAt(i);
+  window.__OPENSCAD_WASM_B64=null; wasmBytes=u; return u;
+}
+// callMain is single-shot, so each render needs a *fresh* engine instance. The emscripten
+// glue keeps init state (runtimeInitialized/calledRun) in its own scope, so re-running the
+// same classic <script> reuses that state and onRuntimeInitialized never fires again (hang).
+// Instead we import the glue text as a data-URL module with a unique hash: a fresh module
+// scope every call => isolated globals => a clean instance, while the ~8 MB wasm bytes and
+// the glue source are fetched only once and cached.
+let glueText=null, engineReady=false;
+async function instantiate(){
+  if(glueText===null){
+    const resp = await fetch('vendor/openscad.wasm.js');
+    if(!resp.ok) throw new Error('engine load failed ('+resp.status+')');
+    glueText = await resp.text();
+  }
+  const bytes = await getWasmBytes();
+  const cfg = { noInitialRun:true, wasmBinary:bytes, locateFile:p=>'vendor/'+p,
+                print:()=>{}, printErr:()=>{} };
+  const ready = new Promise((res,rej)=>{
+    cfg.onRuntimeInitialized = ()=>res();
+    cfg.onAbort = e => rej(new Error('OpenSCAD abort: '+e));
+  });
+  globalThis.OpenSCAD = cfg;
+  // Run the glue in a fresh module scope each render via a blob URL, so emscripten's
+  // global calledRun/runtimeInitialized start clean (a re-loaded classic <script>
+  // can't reset calledRun -> hang). wasmBinary is supplied, so no wasm is fetched.
+  const url = URL.createObjectURL(new Blob([glueText], {type:'text/javascript'}));
+  try { await import(url); }
+  finally { URL.revokeObjectURL(url); delete globalThis.OpenSCAD; }
+  await ready;
+  engineReady = true;
+  return cfg;
+}
+
+let renderer, scene, camera, controls, mesh, raf;
+function initViewer(){
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(w,h);
+  host.appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x161009);
+  camera = new THREE.PerspectiveCamera(38, w/h, 0.5, 4000);
+  scene.add(new THREE.HemisphereLight(0xfffaf0, 0x6b5a40, 1.05));
+  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(60,120,90); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-80,40,-60); scene.add(fill);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.addEventListener('change', draw);
+  new ResizeObserver(()=>{ const W=host.clientWidth,H=host.clientHeight; if(!W||!H) return;
+    renderer.setSize(W,H); camera.aspect=W/H; camera.updateProjectionMatrix(); draw(); }).observe(host);
+  (function loop(){ raf=requestAnimationFrame(loop); if(controls.update()) draw(); })();
+}
+function draw(){ if(renderer) renderer.render(scene, camera); }
+
+// Give every coplanar face its own colour: group triangles by (normal, plane offset)
+// and assign each group a distinct golden-angle hue, written as per-vertex colours.
+function colorByFace(geo){
+  const pos = geo.attributes.position, n = pos.count;
+  const colors = new Float32Array(n*3);
+  const va=new THREE.Vector3(), vb=new THREE.Vector3(), vc=new THREE.Vector3();
+  const ab=new THREE.Vector3(), cb=new THREE.Vector3(), col=new THREE.Color();
+  const groups = new Map(); let next=0;
+  for(let t=0; t<n; t+=3){
+    va.fromBufferAttribute(pos,t); vb.fromBufferAttribute(pos,t+1); vc.fromBufferAttribute(pos,t+2);
+    cb.subVectors(vc,vb); ab.subVectors(va,vb); cb.cross(ab).normalize();   // face normal
+    const d = cb.dot(vb);                                                    // plane offset
+    const key = Math.round(cb.x*40)+'|'+Math.round(cb.y*40)+'|'+Math.round(cb.z*40)+'|'+Math.round(d*2);
+    let g = groups.get(key); if(g===undefined){ g=next++; groups.set(key,g); }
+    col.setHSL((g*0.61803398875)%1, 0.58, 0.56);                            // distinct hue per face
+    for(let k=0;k<3;k++){ const o=(t+k)*3; colors[o]=col.r; colors[o+1]=col.g; colors[o+2]=col.b; }
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors,3));
+}
+
+function setMesh(geo){
+  geo.computeVertexNormals();
+  geo.center();
+  colorByFace(geo);
+  if(mesh){ scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+  const mat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.7, metalness:0.04});
+  mesh = new THREE.Mesh(geo, mat);
+  // saddle is modelled flat (length=X, thickness=Y, height=Z); tip it up so height is screen-up
+  mesh.rotation.x = -Math.PI/2;
+  scene.add(mesh);
+  geo.computeBoundingSphere();
+  const r = geo.boundingSphere.radius;
+  const d = r / Math.sin(THREE.MathUtils.degToRad(camera.fov/2)) * 1.15;
+  camera.position.set(d*0.55, d*0.5, d*0.7);
+  controls.target.set(0,0,0); controls.update();
+  draw();
+}
+
+let busy=false;
+
+// Run the current generated .scad through OpenSCAD-wasm; resolve to STL bytes.
+async function buildStl(onReady){
+  const code = window.generateScad();
+  const inst = await instantiate();   // fresh instance per call
+  if(onReady) onReady();
+  inst.FS.writeFile('/in.scad', code);
+  const rc = inst.callMain(['/in.scad','--export-format=binstl','-o','/out.stl']);
+  if(rc) throw new Error('OpenSCAD exited with code '+rc);
+  return inst.FS.readFile('/out.stl');                 // Uint8Array
+}
+
+async function renderScad(){
+  if(busy) return; busy=true; btn.disabled=true; stlBtn.disabled=true;
+  try{
+    setMsg(engineReady ? 'Rendering…' : 'Loading OpenSCAD engine…');
+    await ensureThree();
+    if(!renderer) initViewer();
+    const data = await buildStl(()=>setMsg('Rendering…'));
+    const geo = new THREE.STLLoader().parse(data.buffer.slice(data.byteOffset, data.byteOffset+data.byteLength));
+    setMesh(geo);
+    setMsg('');
+    btn.textContent = 'Re-render';
+  }catch(e){
+    console.error(e);
+    setMsg('Render failed: '+(e && e.message ? e.message : e));
+  }
+  busy=false; btn.disabled=false; stlBtn.disabled=false;
+}
+
+async function downloadStl(){
+  if(busy) return; busy=true; btn.disabled=true; stlBtn.disabled=true;
+  const label=stlBtn.textContent; stlBtn.textContent='Exporting…';
+  try{
+    const data = await buildStl();
+    const blob = new Blob([data.slice()], {type:'model/stl'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='saddle.stl';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){
+    console.error(e);
+    setMsg('STL export failed: '+(e && e.message ? e.message : e));
+  }
+  stlBtn.textContent=label; busy=false; btn.disabled=false; stlBtn.disabled=false;
+}
+
+btn.addEventListener('click', renderScad);
+stlBtn.addEventListener('click', downloadStl);
+})();
+</script>
+</body>
+</html>
