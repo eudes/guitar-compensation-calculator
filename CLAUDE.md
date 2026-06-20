@@ -21,9 +21,14 @@ setback as `new_comp = old_comp × (new_action / old_action)²`. Saddle-position
 sensitivity ≈ 2.7 cents/mm at this scale (1731/L).
 
 The web calculator implements the full least-squares version (per-fret deflection
-→ ΔT → cents, solved for saddle setback + nut offset). It is vanilla JS / inline
-SVG, no build step, runs offline. Intended to deploy to GitHub Pages at
-`guitar-compensation-calculator` (index.html at repo root).
+→ ΔT → cents, solved for saddle setback + nut offset). It solves **twice**: once for
+the as-built per-string action (§01 Action f1/f12) and once for a **target action**
+(§01, low-E/high-E @ 12th, interpolated across strings; 1st-fret action taken as
+unchanged since the nut isn't lowered). `RES` = as-built, `REST` = target. Sections
+02–05 show both (second table where columns crowd; both marker sets on the maps); the
+§06 saddle is cut for the target. It is vanilla JS / inline SVG, no build step, runs
+offline. Intended to deploy to GitHub Pages at `guitar-compensation-calculator`
+(index.html at repo root).
 
 ## New-saddle build spec (the active work)
 Target action at the 12th fret: **2.0 mm low E → 1.6 mm high E** (down from 2.64 mm
@@ -71,7 +76,7 @@ str  old   blank(scrapped)
   **generates a parametric OpenSCAD saddle** (`Download .scad`): crest heights are
   derived from the as-built Action f12 + target action @12th (uniform base-sand or
   per-string, both overridable); the fore-aft break of each string's crown comes
-  from the live compensation result. Default state reproduces `saddle_reference.stl`
+  from the **target-action** compensation (`REST`). Default state reproduces `saddle_reference.stl`
   (uniform −1.28 mm). Output is a faired radius+tilt top via a hull-lofted solid.
   `saddleModel()` is the single source of geometry; `generateScad()` emits the text.
   Section 06 also has an **in-page 3D preview** that runs the *actual generated

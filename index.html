@@ -130,7 +130,7 @@
       </div>
       <div>
         <label>Nut compensation</label>
-        <div class="toggle"><input type="checkbox" id="nutEnabled" checked><span>compensate the nut</span></div>
+        <div class="toggle"><input type="checkbox" id="nutEnabled"><span>compensate the nut</span></div>
       </div>
       <div>
         <label>String set</label>
@@ -184,17 +184,31 @@
       </table>
     </div>
     <p class="note" style="margin-top:10px">Density: D'Addario unit weight × 17858 = g/m. Wound strings: enter the <em>core</em> diameter, not the overall diameter.</p>
+
+    <div class="subhead">Target action @ 12th fret <span class="u" style="text-transform:none;letter-spacing:0">— the setup you're building toward</span></div>
+    <div class="grid g-global">
+      <div><label>Low E · 6th <span class="u">mm</span></label><input type="number" id="actBass" value="2.0" step="0.05"></div>
+      <div><label>High E · 1st <span class="u">mm</span></label><input type="number" id="actTreb" value="1.6" step="0.05"></div>
+    </div>
+    <p class="note" style="margin-top:10px">Compensation is solved twice — for your <em>as-built</em> action (the per-string columns above) and for this <em>target</em>, interpolated across the strings. Sections 02–05 show both; the 3D saddle (§06) is cut for the target. Lowering the saddle barely changes the action near the nut, so each string's 1st-fret action is taken as unchanged.</p>
   </section>
 
   <!-- RESULTS -->
   <section class="panel">
     <span class="secnum">02 — Result</span>
     <h2>Compensation per string</h2>
-    <p class="note">Saddle = move the break point away from the nut. Nut = shift the break point toward the 1st fret (forward).</p>
+    <p class="note">Saddle = move the break point away from the nut. Nut = shift the break point toward the 1st fret (forward). Compensation scales with action², so the target (lower action) needs less than the as-built.</p>
+    <div class="subhead">As-built action</div>
     <div class="scroll">
       <table class="res"><thead><tr>
         <th>String</th><th>Saddle (mm)</th><th>Nut (mm)</th><th>Error before (¢ rms)</th><th>Error after (¢ rms)</th>
       </tr></thead><tbody id="resbody"></tbody></table>
+    </div>
+    <div class="subhead">Target action <span class="u" style="text-transform:none;letter-spacing:0">— used for the 3D saddle</span></div>
+    <div class="scroll">
+      <table class="res"><thead><tr>
+        <th>String</th><th>Saddle (mm)</th><th>Nut (mm)</th><th>Error before (¢ rms)</th><th>Error after (¢ rms)</th>
+      </tr></thead><tbody id="resbodyT"></tbody></table>
     </div>
   </section>
 
@@ -206,8 +220,10 @@
     <div class="tabs" id="curveTabs"></div>
     <div class="draw"><div id="curve"></div></div>
     <div class="legend">
-      <span><span class="swatch" style="background:var(--steel)"></span>before</span>
-      <span><span class="swatch" style="background:var(--brass)"></span>after</span>
+      <span><span class="swatch" style="background:var(--steel)"></span>before · as-built</span>
+      <span><span class="swatch" style="background:var(--brass)"></span>after · as-built</span>
+      <span><span class="swatch" style="background:var(--steel);height:0;border-top:2px dashed var(--steel)"></span>before · target</span>
+      <span><span class="swatch" style="background:var(--ok)"></span>after · target</span>
     </div>
   </section>
 
@@ -220,14 +236,19 @@
     <div class="twocol">
       <div class="draw"><div id="saddleDraw"></div></div>
       <div class="scroll">
+        <div class="subhead" style="margin-top:0">As-built action</div>
         <table><thead><tr><th>String</th><th>Ideal break from nut (mm)</th><th id="thSlotRef">Centre from nut (mm)</th><th>Peak from front edge (mm)</th><th>Fits</th></tr></thead>
         <tbody id="saddleTab"></tbody></table>
+        <div class="subhead">Target action</div>
+        <table><thead><tr><th>String</th><th>Ideal break from nut (mm)</th><th>Centre from nut (mm)</th><th>Peak from front edge (mm)</th><th>Fits</th></tr></thead>
+        <tbody id="saddleTabT"></tbody></table>
       </div>
     </div>
     <div class="legend">
       <span><span class="swatch" style="background:var(--ink)"></span>slot edges</span>
       <span><span class="swatch" style="background:var(--steel);height:0;border-top:2px dashed var(--steel)"></span><span id="legCentre">slot centre</span></span>
-      <span><span class="dot" style="background:var(--brass)"></span>break point</span>
+      <span><span class="dot" style="background:var(--brass)"></span>break · as-built</span>
+      <span><span class="dot" style="background:var(--ok)"></span>break · target</span>
       <span class="tag">fore-aft axis exaggerated — read the table for exact mm</span>
     </div>
   </section>
@@ -240,9 +261,13 @@
     <div class="twocol">
       <div class="draw"><div id="nutDraw"></div></div>
       <div class="scroll">
-        <table><thead><tr><th>String</th><th>Offset (mm)</th><th>Direction</th></tr></thead>
+        <table><thead><tr><th>String</th><th>As-built (mm)</th><th>Target (mm)</th><th>Direction (target)</th></tr></thead>
         <tbody id="nutTab"></tbody></table>
       </div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--brass)"></span>as-built</span>
+      <span><span class="dot" style="background:var(--ok)"></span>target</span>
     </div>
     <p class="note" id="nutFallback" style="margin-top:14px"></p>
   </section>
@@ -270,10 +295,8 @@
         <label>Height model</label>
         <div class="toggle"><input type="checkbox" id="perString"><span>per-string (off = uniform base sand)</span></div>
       </div>
-      <div><label>Target action @ 12th · bass <span class="u">mm</span></label><input type="number" id="actBass" value="2.0" step="0.05"></div>
-      <div><label>Target action @ 12th · treble <span class="u">mm</span></label><input type="number" id="actTreb" value="1.6" step="0.05"></div>
     </div>
-    <p class="note" style="margin-top:10px">Crest heights are derived from your as-built <em>Action f12</em> (§01) and these targets: a lower string drops the saddle ~2&times; the action drop. <b>Uniform</b> lowers every crest by the single amount the tightest string needs (a base sand); <b>per-string</b> shapes each crest to hit its own target. Edit any <em>New crest</em> to override — overridden rows are left untouched until you reset.</p>
+    <p class="note" style="margin-top:10px">Crest heights come from your as-built <em>Action f12</em> (§01) and the <em>target action</em> (§01): a lower string drops the saddle ~2&times; the action drop. <b>Uniform</b> lowers every crest by the single amount the tightest string needs (a base sand); <b>per-string</b> shapes each crest to hit its own target. Edit any <em>New crest</em> to override — overridden rows are left untouched until you reset.</p>
 
     <div class="scroll">
       <table>
@@ -412,7 +435,9 @@ function computeString(g,p){
   return {saddle:ds*1000, nut:nut*1000, rmsB:Math.sqrt(rb/N), rmsA:Math.sqrt(ra/N), rows};
 }
 
-let RES=[], CUR=ORD[0];   // default-select the first string shown (1st / treble)
+let RES=[], REST=[], CUR=ORD[0];   // RES = as-built, REST = target; default-select first string shown
+// target action @12th interpolated across strings (a1 unchanged — the nut isn't lowered)
+const targetA12 = t => { const b=+$("actBass").value, tr=+$("actTreb").value; return b+(tr-b)*t; };
 
 function recompute(){
   const {g,rows} = readInputs();
@@ -422,6 +447,7 @@ function recompute(){
   $("thSlotRef").textContent = (g.refEdge?"Inner edge":"Centre")+" from nut (mm)";
   $("legCentre").textContent = "slot "+rt;
   RES = rows.map(p=>({...p, ...computeString(g,p)}));
+  REST = rows.map(p=>{ const pt={...p, a12:targetA12(p.t)}; return {...pt, ...computeString(g,pt)}; });
   renderResults();
   renderCurveTabs();
   renderCurve(g);
@@ -433,11 +459,13 @@ function recompute(){
 }
 
 function renderResults(){
-  $("resbody").innerHTML = ORD.map(i=>{ const r=RES[i]; return `<tr><td>${r.name}</td>`+
+  const body = res => ORD.map(i=>{ const r=res[i]; return `<tr><td>${r.name}</td>`+
     `<td class="s num">${fmt(r.saddle)}</td>`+
     `<td class="n num strong">${fmt(r.nut)}</td>`+
     `<td class="num">${r.rmsB.toFixed(2)}</td>`+
     `<td class="num strong">${r.rmsA.toFixed(3)}</td></tr>`; }).join("");
+  $("resbody").innerHTML = body(RES);
+  $("resbodyT").innerHTML = body(REST);
 }
 
 function renderCurveTabs(){
@@ -446,16 +474,16 @@ function renderCurveTabs(){
     b.addEventListener("click",()=>{CUR=+b.dataset.c; recompute();}));
 }
 
-// --- SVG line chart for a single string error curve ---
+// --- SVG line chart: one string, before/after for both as-built and target ---
 function renderCurve(g){
-  const r = RES[CUR]; const W=720,H=300, m={l:46,r:14,t:18,b:34};
-  const xs=r.rows.map(p=>p.n);
-  const vals=[].concat(r.rows.map(p=>p.eb), r.rows.map(p=>p.ef), [0]);
+  const rA = RES[CUR], rT = REST[CUR]; const W=720,H=300, m={l:46,r:14,t:18,b:34};
+  const vals=[].concat(rA.rows.map(p=>p.eb), rA.rows.map(p=>p.ef),
+                       rT.rows.map(p=>p.eb), rT.rows.map(p=>p.ef), [0]);
   let ymax=Math.max(...vals), ymin=Math.min(...vals);
   const pad=(ymax-ymin)*0.12||1; ymax+=pad; ymin-=pad;
   const X=n=>m.l+(n-1)/(g.frets-1)*(W-m.l-m.r);
   const Y=v=>m.t+(ymax-v)/(ymax-ymin)*(H-m.t-m.b);
-  const path=key=>r.rows.map((p,i)=>(i?"L":"M")+X(p.n).toFixed(1)+","+Y(p[key]).toFixed(1)).join(" ");
+  const path=(rows,key)=>rows.map((p,i)=>(i?"L":"M")+X(p.n).toFixed(1)+","+Y(p[key]).toFixed(1)).join(" ");
   // gridlines (cents)
   let grid="";
   const step = (ymax-ymin)>20?5:(ymax-ymin>8?2:1);
@@ -472,8 +500,10 @@ function renderCurve(g){
     `<svg id="curveSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="error curve" style="touch-action:pan-y">
       ${grid}
       <text x="${W-m.r}" y="${m.t-5}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">cents sharp ↑</text>
-      <path d="${path('eb')}" fill="none" stroke="#8a8a8a" stroke-width="1.6"/>
-      <path d="${path('ef')}" fill="none" stroke="#a8821f" stroke-width="2.4"/>
+      <path d="${path(rA.rows,'eb')}" fill="none" stroke="#8a8a8a" stroke-width="1.5"/>
+      <path d="${path(rT.rows,'eb')}" fill="none" stroke="#8a8a8a" stroke-width="1.3" stroke-dasharray="5 4"/>
+      <path d="${path(rA.rows,'ef')}" fill="none" stroke="#a8821f" stroke-width="2.3"/>
+      <path d="${path(rT.rows,'ef')}" fill="none" stroke="#5a6e36" stroke-width="2.3"/>
       ${ticks}
       <text x="${(m.l+W-m.r)/2}" y="${H-1}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#9a866d">fret</text>
       <g id="curveHL"></g>
@@ -485,17 +515,19 @@ function renderCurve(g){
     const sx=(clientX-rc.left)/rc.width*W;
     let n=Math.round((sx-m.l)/(W-m.l-m.r)*(g.frets-1))+1;
     n=Math.max(1,Math.min(g.frets,n));
-    const p=r.rows[n-1], xx=X(n), tw=110, th=48;
+    const a=rA.rows[n-1], t=rT.rows[n-1], xx=X(n), tw=146, th=72;
     let tx=xx+10; if(tx+tw>W-m.r) tx=xx-10-tw; tx=Math.max(m.l,tx);
     const ty=m.t+2;
     hl.innerHTML=
       `<line x1="${xx}" y1="${m.t}" x2="${xx}" y2="${H-m.b}" stroke="#c9b48a" stroke-width="1"/>`+
-      `<circle cx="${xx}" cy="${Y(p.eb).toFixed(1)}" r="3.6" fill="#8a8a8a"/>`+
-      `<circle cx="${xx}" cy="${Y(p.ef).toFixed(1)}" r="3.6" fill="#a8821f"/>`+
+      `<circle cx="${xx}" cy="${Y(a.eb).toFixed(1)}" r="3.2" fill="#8a8a8a"/>`+
+      `<circle cx="${xx}" cy="${Y(a.ef).toFixed(1)}" r="3.4" fill="#a8821f"/>`+
+      `<circle cx="${xx}" cy="${Y(t.ef).toFixed(1)}" r="3.4" fill="#5a6e36"/>`+
       `<rect x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="3" fill="#2a1d12" opacity="0.95"/>`+
       `<text x="${tx+10}" y="${ty+16}" font-family="ui-monospace,monospace" font-size="11.5" fill="#f4ead8">fret ${n}</text>`+
-      `<text x="${tx+10}" y="${ty+30}" font-family="ui-monospace,monospace" font-size="10.5" fill="#cfcabb">before ${p.eb.toFixed(2)} ¢</text>`+
-      `<text x="${tx+10}" y="${ty+44}" font-family="ui-monospace,monospace" font-size="10.5" fill="#caa033">after&#160;&#160;${p.ef.toFixed(2)} ¢</text>`;
+      `<text x="${tx+10}" y="${ty+30}" font-family="ui-monospace,monospace" font-size="10" fill="#cfcabb">as-built ${a.eb.toFixed(2)}→${a.ef.toFixed(2)} ¢</text>`+
+      `<text x="${tx+10}" y="${ty+44}" font-family="ui-monospace,monospace" font-size="10" fill="#caa033">target&#160;&#160;${t.eb.toFixed(2)}→${t.ef.toFixed(2)} ¢</text>`+
+      `<text x="${tx+10}" y="${ty+62}" font-family="ui-monospace,monospace" font-size="9" fill="#9a866d">before → after</text>`;
   }
   hit.addEventListener("pointermove",e=>show(e.clientX));
   hit.addEventListener("pointerdown",e=>show(e.clientX));
@@ -503,9 +535,9 @@ function renderCurve(g){
 }
 
 // --- Saddle top-view drawing ---
-function renderSaddle(g){
+function saddleData(g, res){
   const off = g.refEdge ? g.sw/2 : 0;
-  const data = RES.map(r=>{
+  return res.map(r=>{
     const ideal=g.scale+r.saddle;
     const ref=g.d6+(g.d1-g.d6)*r.t;
     const centre=ref+off;
@@ -515,38 +547,44 @@ function renderSaddle(g){
     const fits=Math.abs(offC)<=g.sw/2+1e-9;
     return {name:r.name, t:r.t, ideal, ref, centre, inner, offC, front, fits, y:g.spread*r.t};
   });
-  const anyOut = data.some(d=>!d.fits);
-  $("saddleBanner").innerHTML = anyOut
-    ? `<div class="banner warn"><b>Warning · out of slot</b>One or more strings can't reach the ideal break point inside the existing slot. Re-route or relocate the slot, widen it, or accept the clamped position (and the intonation loss).</div>`
-    : `<div class="banner ok"><b>Clear</b>Every ideal break point falls within the existing saddle slot.</div>`;
-
-  $("saddleTab").innerHTML = ORD.map(i=>{ const d=data[i]; return `<tr><td>${d.name}</td>`+
+}
+function saddleRows(data){
+  return ORD.map(i=>{ const d=data[i]; return `<tr><td>${d.name}</td>`+
     `<td class="num strong">${fmt(d.ideal,2)}</td>`+
     `<td class="num">${fmt(d.ref,2)}</td>`+
     `<td class="num">${fmt(d.front,2)}</td>`+
     `<td style="text-align:right;color:${d.fits?'var(--ok)':'var(--alert)'};font-family:var(--mono);font-size:12px">${d.fits?'fits':'OUT'}</td></tr>`; }).join("");
+}
+function renderSaddle(g){
+  const dataA = saddleData(g, RES), dataT = saddleData(g, REST);
+  const anyOut = dataT.some(d=>!d.fits);   // banner reflects the target — that's what gets cut
+  $("saddleBanner").innerHTML = anyOut
+    ? `<div class="banner warn"><b>Warning · out of slot (target)</b>At the target action, one or more ideal break points fall outside the existing slot. They're clamped to the nearest face (a little intonation loss), or re-route / relocate the slot.</div>`
+    : `<div class="banner ok"><b>Clear</b>At the target action, every ideal break point falls within the existing saddle slot.</div>`;
+  $("saddleTab").innerHTML = saddleRows(dataA);
+  $("saddleTabT").innerHTML = saddleRows(dataT);
 
   // geometry
+  const off = g.refEdge ? g.sw/2 : 0;
   const W=560,H=300, m={l:58,r:20,t:26,b:30};
-  const xsAll=[].concat(data.map(d=>d.inner), data.map(d=>d.inner+g.sw), data.map(d=>d.ideal));
+  const xsAll=[].concat(dataA.map(d=>d.inner), dataA.map(d=>d.inner+g.sw), dataA.map(d=>d.ideal), dataT.map(d=>d.ideal));
   let xmin=Math.min(...xsAll), xmax=Math.max(...xsAll);
   const xpad=(xmax-xmin)*0.18||1; xmin-=xpad; xmax+=xpad;
   const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
   const Y=y=>m.t+(1-y/g.spread)*(H-m.t-m.b);   // 1st string (t=1) at top, 6th (t=0) at bottom
-  // slot parallelogram
+  // slot parallelogram (the slot doesn't move with the action)
   const cen6=g.d6+off, cen1=g.d1+off, hw=g.sw/2;
   const poly=[[cen6-hw,0],[cen1-hw,g.spread],[cen1+hw,g.spread],[cen6+hw,0]]
     .map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
   const centreLine=`<line x1="${X(g.d6)}" y1="${Y(0)}" x2="${X(g.d1)}" y2="${Y(g.spread)}" stroke="#8a8a8a" stroke-width="1.2" stroke-dasharray="5 4"/>`;
-  // string rows + markers
+  // string rows + markers (as-built brass, target green; red if out of slot)
   let rows="";
-  data.forEach(d=>{
-    const y=Y(d.y).toFixed(1);
+  dataA.forEach((dA,i)=>{
+    const dT=dataT[i], y=Y(dA.y).toFixed(1);
     rows+=`<line x1="${m.l-4}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="#ece1cb" stroke-width="1"/>`;
-    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${d.name.split(" ")[0]}</text>`;
-    const col=d.fits?"#a8821f":"#9c2d18";
-    rows+=`<circle cx="${X(d.ideal).toFixed(1)}" cy="${y}" r="5" fill="${col}" stroke="#fbf6ea" stroke-width="1.2"/>`;
-    if(!d.fits) rows+=`<text x="${X(d.ideal).toFixed(1)}" y="${(+y-8)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#9c2d18">!</text>`;
+    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${dA.name.split(" ")[0]}</text>`;
+    rows+=`<circle cx="${X(dA.ideal).toFixed(1)}" cy="${y}" r="5" fill="${dA.fits?'#a8821f':'#9c2d18'}" stroke="#fbf6ea" stroke-width="1.2"/>`;
+    rows+=`<circle cx="${X(dT.ideal).toFixed(1)}" cy="${y}" r="4" fill="${dT.fits?'#5a6e36':'#9c2d18'}" stroke="#fbf6ea" stroke-width="1.2"/>`;
   });
   // x scale ticks
   let ax="";
@@ -565,27 +603,29 @@ function renderSaddle(g){
 
 // --- Nut top-view drawing ---
 function renderNut(g){
-  const data = RES.map(r=>({name:r.name, off:r.nut, y:g.spread*r.t}));
-  $("nutTab").innerHTML = ORD.map(i=>{ const d=data[i];
-    const dir = d.off>0.0005?"forward → 1st fret":(d.off<-0.0005?"back → head":"on line");
-    const col = d.off>0.0005?"var(--ink)":(d.off<-0.0005?"var(--alert)":"var(--ink-soft)");
-    return `<tr><td>${d.name}</td><td class="num strong">${fmt(d.off)}</td>`+
+  const dataA = RES.map(r=>({name:r.name, off:r.nut, y:g.spread*r.t}));
+  const dataT = REST.map(r=>({name:r.name, off:r.nut, y:g.spread*r.t}));
+  $("nutTab").innerHTML = ORD.map(i=>{ const a=dataA[i], t=dataT[i];
+    const dir = t.off>0.0005?"forward → 1st fret":(t.off<-0.0005?"back → head":"on line");
+    const col = t.off>0.0005?"var(--ink)":(t.off<-0.0005?"var(--alert)":"var(--ink-soft)");
+    return `<tr><td>${a.name}</td><td class="num">${fmt(a.off)}</td><td class="num strong">${fmt(t.off)}</td>`+
       `<td style="text-align:right;font-size:12px;color:${col}">${dir}</td></tr>`;
   }).join("");
-  const avg = data.reduce((s,d)=>s+d.off,0)/data.length;
-  $("nutFallback").innerHTML = `Prefer to keep the nut a single straight line? Shift the whole nut forward by <span class="strong" style="font-family:var(--mono)">${fmt(avg)} mm</span>. Convention: + offset = forward, toward the 1st fret (shortens the open string).`;
+  const avg = dataT.reduce((s,d)=>s+d.off,0)/dataT.length;
+  $("nutFallback").innerHTML = `Prefer to keep the nut a single straight line? For the target, shift the whole nut forward by <span class="strong" style="font-family:var(--mono)">${fmt(avg)} mm</span>. Convention: + offset = forward, toward the 1st fret (shortens the open string).`;
 
   const W=560,H=300, m={l:58,r:24,t:26,b:40};
-  const maxoff=Math.max(0.15, ...data.map(d=>Math.abs(d.off)));
+  const maxoff=Math.max(0.15, ...dataA.map(d=>Math.abs(d.off)), ...dataT.map(d=>Math.abs(d.off)));
   const xmin=-maxoff*1.5, xmax=maxoff*1.5;
   const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
   const Y=y=>m.t+(1-y/g.spread)*(H-m.t-m.b);   // 1st string at top, 6th at bottom
   let rows="";
-  data.forEach(d=>{
-    const y=Y(d.y).toFixed(1);
+  dataA.forEach((a,i)=>{
+    const t=dataT[i], y=Y(a.y).toFixed(1);
     rows+=`<line x1="${m.l-4}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="#ece1cb" stroke-width="1"/>`;
-    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${d.name.split(" ")[0]}</text>`;
-    rows+=`<circle cx="${X(d.off).toFixed(1)}" cy="${y}" r="5" fill="#a8821f" stroke="#fbf6ea" stroke-width="1.2"/>`;
+    rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${a.name.split(" ")[0]}</text>`;
+    rows+=`<circle cx="${X(a.off).toFixed(1)}" cy="${y}" r="5" fill="#a8821f" stroke="#fbf6ea" stroke-width="1.2"/>`;
+    rows+=`<circle cx="${X(t.off).toFixed(1)}" cy="${y}" r="4" fill="#5a6e36" stroke="#fbf6ea" stroke-width="1.2"/>`;
   });
   // nut line at 0
   const line=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(g.spread)}" stroke="#2a1d12" stroke-width="1.8"/>`;
@@ -605,7 +645,7 @@ function renderNut(g){
 }
 
 $("presetSel").addEventListener("change",()=>loadPreset($("presetSel").value));
-["scale","frets","stiff","nutEnabled","d6","d1","sw","spread"].forEach(id=>
+["scale","frets","stiff","nutEnabled","d6","d1","sw","spread","actBass","actTreb"].forEach(id=>
   $(id).addEventListener("input",recompute));
 $("refEdge").addEventListener("change",()=>{
   const w=+$("sw").value, delta=$("refEdge").checked?-w/2:w/2;
@@ -679,7 +719,7 @@ function saddleModel(){
   const trimL=Math.max(0,+$("trimL").value), trimR=Math.max(0,+$("trimR").value);
   const spread=g.spread, margin=(length-spread)/2;
   const strpos=[], crests=[], breaks=[];
-  RES.forEach((r,i)=>{
+  REST.forEach((r,i)=>{                 // target compensation drives the cut saddle
     const t=STR[i].t, p=margin+spread*t;
     const off=g.refEdge?g.sw/2:0;
     const inner=g.d6+(g.d1-g.d6)*t+off-g.sw/2;
@@ -788,7 +828,7 @@ function downloadScad(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-["sadLen","bevelDeg","actBass","actTreb"].forEach(id=>$(id).addEventListener("input",updateDerivedHeights));
+["sadLen","bevelDeg"].forEach(id=>$(id).addEventListener("input",updateDerivedHeights));
 $("perString").addEventListener("change",updateDerivedHeights);
 $("dlScad").addEventListener("click",downloadScad);
 $("resetHeights").addEventListener("click",resetHeights);
