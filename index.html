@@ -1009,30 +1009,54 @@ function ztop(p,q) = Hc(p) - tan(bevel)*abs(q - qb(p));
 
 function unit(v) = v / norm(v);
 function clampv(x,lo,hi) = max(lo, min(hi, x));
-// round a convex vertex V (between neighbours A and B) to radius r → arc point list
-function fillet(V, A, B, r) =
-    let( a = unit(A - V), b = unit(B - V),
-         ang = acos(clampv(a*b, -1, 1)),               // interior angle at V (degrees)
-         t = r / tan(ang/2),
-         C = V + unit(a + b) * (r / sin(ang/2)),        // arc centre, on the interior side
-         pA = V + a*t, pB = V + b*t,                    // tangent points on each edge
-         aA = atan2(pA[1]-C[1], pA[0]-C[0]),
-         aB = atan2(pB[1]-C[1], pB[0]-C[0]),
-         d  = ((aB - aA) + 540) % 360 - 180,            // shortest signed sweep (the minor arc)
-         segs = max(3, ceil(abs(d)/360 * $fn)) )
-    [ for(i=[0:segs]) let(ai = aA + d*i/segs) C + r*[cos(ai), sin(ai)] ];
+// round a convex vertex V (neighbours A,B) to radius r, but shrink the radius so the
+// tangent point never passes the midpoint of either edge — adjacent fillets can't
+// overlap, so the rounding stays valid as the crown slides on/off a face. → arc points
+function fillet(A, V, B, r) =
+    let( da = A-V, db = B-V, la = norm(da), lb = norm(db) )
+    (r <= 0 || la < 1e-6 || lb < 1e-6) ? [V]
+    : let( a = da/la, b = db/lb, ang = acos(clampv(a*b, -1, 1)) )
+      (ang >= 179 || ang <= 1) ? [V]
+      : let( t    = min(r/tan(ang/2), 0.49*min(la,lb)),
+             reff = t*tan(ang/2),
+             C    = V + unit(a+b)*(reff/sin(ang/2)),
+             pA   = V + a*t, pB = V + b*t,
+             aA   = atan2(pA[1]-C[1], pA[0]-C[0]),
+             aB   = atan2(pB[1]-C[1], pB[0]-C[0]),
+             d    = ((aB-aA)+540) % 360 - 180,
+             segs = max(2, ceil(abs(d)/360 * $fn * min(1, reff))) )
+        [ for(i=[0:segs]) let(ai = aA + d*i/segs) C + reff*[cos(ai), sin(ai)] ];
 
-// cross-section: two ramps meeting at the crest; the crown vertex is rounded when
-// roundover>0 (analytic arc — no offset, so it lofts fast). The foot stays sharp.
+// sharp cross-section: base + tent top (peak omitted only when the crown sits on a face)
+function sharpPoly(p) = let(b = qb(p), z0 = ztop(p,0), z1 = ztop(p,thickness))
+    (b > 0 && b < thickness) ? [[0,0],[0,z0],[b,Hc(p)],[thickness,z1],[thickness,0]]
+                             : [[0,0],[0,z0],[thickness,z1],[thickness,0]];
+
+// arc helper: points on a circle (centre C, radius r) sweeping from angle a1 to a0.
+// Segment count scales with the arc's size (a small roundover needs few segments), which
+// keeps the loft fast — these little caps don't need full-circle $fn resolution.
+function arcPts(C, r, a1, a0) =
+    let( n = max(3, ceil(abs(a1-a0)/360 * $fn * min(1, r))) )
+    [ for(i=[0:n]) let(a = a1 - (a1-a0)*i/n) [C[0] + r*cos(a), C[1] + r*sin(a)] ];
+
+// Crown cap = a true radius-r arc centred r below the crest (full height kept), so an
+// OPEN crown (clear of both faces) gets a prominent radius-r nose; it meets each bevel at
+// b ± r·sin(2·bevel). A crown clamped onto a face is left SHARP so its break stays exactly
+// on the face (rounding a face-clamped crown can only shift its contact a radius back).
+function domeMid(cx, cz, r) = arcPts([cx, cz-r], r, 90+2*bevel, 90-2*bevel);
+
+// Round the break edge of OPEN crowns when roundover>0 (dome + shoulder fillets); leave
+// face-clamped crowns sharp. Base corners stay sharp throughout.
 function topPoly(p) =
-    let( b = qb(p), z0 = ztop(p,0), z1 = ztop(p,thickness), Hcp = Hc(p), r = roundover )
-    (r <= 0)
-        ? concat([[0,0],[0,z0]], (b>0 && b<thickness)?[[b,Hcp]]:[], [[thickness,z1],[thickness,0]])
-    : (b > 0 && b < thickness)                                  // crown in the open → symmetric round
-        ? concat([[0,0],[0,z0]], fillet([b,Hcp],[0,z0],[thickness,z1], r), [[thickness,z1],[thickness,0]])
-    : (b <= 0)                                                  // crown clamped to the nut face
-        ? concat([[0,0]], fillet([0,z0],[0,0],[thickness,z1], r), [[thickness,z1],[thickness,0]])
-        : concat([[0,0],[0,z0]], fillet([thickness,z1],[0,z0],[thickness,0], r), [[thickness,0]]);  // pin face
+    let( b = qb(p), z0 = ztop(p,0), z1 = ztop(p,thickness), r = roundover, rs = r*sin(2*bevel) )
+    (r <= 0) ? sharpPoly(p)
+    : (b > rs && b < thickness - rs)                                    // open crown — rounded
+        ? concat( [[0,0]],
+                  fillet([0,0], [0,z0], [b,Hc(p)], r),
+                  domeMid(b, Hc(p), r),
+                  fillet([b,Hc(p)], [thickness,z1], [thickness,0], r),
+                  [[thickness,0]] )
+    : sharpPoly(p);                                                     // clamped to a face — left sharp
 
 module xslice(p) {
     translate([p,0,0]) rotate([90,0,90])
