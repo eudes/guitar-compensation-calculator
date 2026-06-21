@@ -133,6 +133,10 @@
         <div class="toggle"><input type="checkbox" id="nutEnabled"><span>compensate the nut</span></div>
       </div>
       <div>
+        <label>Mottola mode <span class="u">deflect to fingerboard</span></label>
+        <div class="toggle" style="gap:10px"><input type="checkbox" id="mottola"><span>fret&nbsp;ht</span><input type="number" id="fretH" value="1.0" step="0.05" style="width:64px"><span>mm</span></div>
+      </div>
+      <div>
         <label>String set</label>
         <select id="presetSel">
           <optgroup label="D'Addario · Phosphor Bronze">
@@ -190,12 +194,49 @@
       <div><label>Low E · 6th <span class="u">mm</span></label><input type="number" id="actBass" value="2.0" step="0.05"></div>
       <div><label>High E · 1st <span class="u">mm</span></label><input type="number" id="actTreb" value="1.6" step="0.05"></div>
     </div>
-    <p class="note" style="margin-top:10px">Compensation is solved twice — for your <em>as-built</em> action (the per-string columns above) and for this <em>target</em>, interpolated across the strings. Sections 02–05 show both; the 3D saddle (§06) is cut for the target. Lowering the saddle barely changes the action near the nut, so each string's 1st-fret action is taken as unchanged.</p>
+    <p class="note" style="margin-top:10px">Compensation is solved twice — for your <em>as-built</em> action (the per-string columns above) and for this <em>target</em>, interpolated across the strings. Sections 03–06 show both; the 3D saddle (§07) is cut for the target. Lowering the saddle barely changes the action near the nut, so each string's 1st-fret action is taken as unchanged.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px">
+      <div class="presets" style="margin-top:0">
+        <button id="saveJson">Save inputs (.json)</button>
+        <button id="loadJson">Load inputs…</button>
+      </div>
+      <input type="file" id="loadJsonFile" accept="application/json,.json" style="display:none">
+      <span class="tag" id="ioStatus">Saves every input on the page — strings, action, calibration, crest overrides.</span>
+    </div>
+  </section>
+
+  <!-- CALIBRATION -->
+  <section class="panel">
+    <span class="secnum">02 — Calibration</span>
+    <h2>Fit the model to your guitar</h2>
+    <p class="note">The textbook deflection model rarely matches a given guitar outright — string construction, fretting force and setup all shift how sharp each fretted note really goes, in either direction. Measure the <b>actual</b> intonation of the guitar as it stands now and the tool fits one <em>deflection-gain</em> factor that scales the whole model up or down to match. Every section below then uses it. <span class="u" style="text-transform:none;letter-spacing:0">(For this guitar both the measured break points and Mottola's calculator land well <em>above</em> gain&nbsp;1 — it needs <em>more</em> compensation than textbook, not less.)</span></p>
+    <p class="note" style="margin-top:8px">Deflection sharpening and saddle setback bend the error-vs-fret curve in almost exactly the same way (≈100&nbsp;% collinear), so cents alone can't tell them apart. To break the tie, give the <b>current break point</b> of each string — the fore-aft distance from the nut to where the string actually leaves the <em>old</em> saddle (a ruler reading, not the crest height in §07). The cells are pre-filled with the measured break points of the current saddle; override them if you re-measure.</p>
+    <p class="note" style="margin-top:8px">Then, with each string tuned open to pitch, fret it and read <b>cents sharp</b> on a tuner (strobe ideal) at a few frets — higher frets carry the most signal. Leave blanks where you didn't measure; any string with a break value and <b>at least one fret</b> counts. The fit also estimates one shared constant offset to soak up imperfect open tuning.</p>
+    <div class="scroll">
+      <table class="res">
+        <thead><tr><th>String</th><th>Break <span class="u" style="text-transform:none;letter-spacing:0">mm from nut</span></th><th>3rd</th><th>5th</th><th>7th</th><th>9th</th><th>12th</th></tr></thead>
+        <tbody id="calbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px">
+      <div class="presets" style="margin-top:0">
+        <button id="fitGain">Fit gain to measurements</button>
+        <button id="resetGain">Reset (gain = 1)</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass)">Deflection gain</label>
+        <input type="number" id="calGain" value="1" step="0.01" style="width:90px">
+      </div>
+      <span class="tag" id="calStatus">gain 1.00 — model uncalibrated</span>
+    </div>
+    <p class="note" style="margin-top:10px">Gain&nbsp;1 = textbook deflection. Below&nbsp;1 = the guitar is flatter than predicted, so it needs less compensation; above&nbsp;1 = sharper, needing more — both happen. (This guitar fits ~1.6, and Mottola's calculator independently lands ~1.9× the textbook setbacks.) Type a value directly to explore, or fit it from data. Because the break point is known, every fret then agrees on the same gain — the collinearity that defeats a cents-only fit now works in our favour.</p>
+    <div class="toggle" style="margin-top:14px"><input type="checkbox" id="anchorTarget" checked><span><b>Anchor the target saddle to your current saddle</b> (recommended)</span></div>
+    <p class="note" style="margin-top:8px">Your current saddle already intonates well, so instead of computing the target break points from the absolute model, take <em>your measured break points</em> and scale each by the action² ratio the model predicts between the as-built and target actions (<code>target = current × REST/RES</code>). The deflection gain cancels in that ratio, so the cut inherits all the real-world compensation baked into the working saddle and only adjusts it for the lower action. Off = pure model (the old behaviour). Needs a break value per string; the nut (if compensated) still follows the model.</p>
   </section>
 
   <!-- RESULTS -->
   <section class="panel">
-    <span class="secnum">02 — Result</span>
+    <span class="secnum">03 — Result</span>
     <h2>Compensation per string</h2>
     <p class="note">Saddle = move the break point away from the nut. Nut = shift the break point toward the 1st fret (forward). Compensation scales with action², so the target (lower action) needs less than the as-built.</p>
     <div class="subhead">As-built action</div>
@@ -214,7 +255,7 @@
 
   <!-- ERROR CURVE -->
   <section class="panel">
-    <span class="secnum">03 — Intonation error</span>
+    <span class="secnum">04 — Intonation error</span>
     <h2>Before &amp; after, by fret</h2>
     <p class="note">Cents sharp at each fretted note. Compensation pulls the whole curve toward zero. Tap or hover the graph to read the exact value at any fret.</p>
     <div class="tabs" id="curveTabs"></div>
@@ -229,7 +270,7 @@
 
   <!-- SADDLE DRAWING -->
   <section class="panel">
-    <span class="secnum">04 — Saddle</span>
+    <span class="secnum">05 — Saddle</span>
     <h2>Break-point map</h2>
     <p class="note">Top view of the existing slot. A marker shows where each string must break; if it falls outside the slot it turns red. In the table, "peak from front edge" is the file-to point — a value below 0 or above the slot width means the ideal break lands outside the slot (negative = in front of it, toward the nut).</p>
     <div id="saddleBanner"></div>
@@ -247,15 +288,16 @@
     <div class="legend">
       <span><span class="swatch" style="background:var(--ink)"></span>slot edges</span>
       <span><span class="swatch" style="background:var(--steel);height:0;border-top:2px dashed var(--steel)"></span><span id="legCentre">slot centre</span></span>
-      <span><span class="dot" style="background:var(--brass)"></span>break · as-built</span>
-      <span><span class="dot" style="background:var(--ok)"></span>break · target</span>
+      <span><svg width="14" height="14" style="vertical-align:-2px"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--ink)" stroke-width="1.8"/></svg> current saddle · measured</span>
+      <span><svg width="14" height="14" style="vertical-align:-2px"><polygon points="7,2 12,7 7,12 2,7" fill="var(--brass)"/></svg> break · as-built</span>
+      <span><svg width="14" height="14" style="vertical-align:-2px"><polygon points="7,2 12,11 2,11" fill="var(--ok)"/></svg> break · target</span>
       <span class="tag">fore-aft axis exaggerated — read the table for exact mm</span>
     </div>
   </section>
 
   <!-- NUT DRAWING -->
   <section class="panel">
-    <span class="secnum">05 — Nut</span>
+    <span class="secnum">06 — Nut</span>
     <h2>Compensation from the straight line</h2>
     <p class="note">The original nut is a straight line. Each string's break point shifts forward (toward the 1st fret) or back, cut by filing the nut's front face per string.</p>
     <div class="twocol">
@@ -274,7 +316,7 @@
 
   <!-- 3D SADDLE / OPENSCAD -->
   <section class="panel">
-    <span class="secnum">06 — 3D model</span>
+    <span class="secnum">07 — 3D model</span>
     <h2>OpenSCAD saddle</h2>
     <p class="note">Turns the numbers above into a printable / CNC-able 3D saddle. The top profile is faired to a smooth radius-and-tilt curve through the per-string crest heights; each string's crown peaks exactly on its computed break point. Download the parametric <span class="tag">.scad</span> and open it in OpenSCAD to render or export an STL — every value sits in editable variables at the top of the file.</p>
 
@@ -349,6 +391,18 @@ const STR = [
 // Data/physics keep the canonical index (0 = 6th); this only reorders presentation.
 const ORD = [5,4,3,2,1,0];
 const FIELDS = ["f","mu","dia","E","a1","a12"];
+const CAL_FRETS = [3,5,7,9,12];   // frets offered in the §02 calibration grid
+// Measured nut→break of the CURRENT (old) saddle, mm from nut. Order: 6th E2 … 1st E4.
+const CUR_BREAK = [639.0, 638.0, 637.5, 636.0, 637.0, 635.0];
+// Measured cents-sharp on the current saddle, per string × CAL_FRETS [3,5,7,9,12]. 6th E2 … 1st E4.
+const CUR_CENTS = [
+  [-1, -1,  0,  1,  2],   // E2 (6th)
+  [-1,  0, -1, -1,  0],   // A2 (5th)
+  [-1, -3, -1,  0, -2],   // D3 (4th)
+  [ 1,  6,  5,  4,  2],   // G3 (3rd)
+  [-2, -7, -3,  0,  0],   // B3 (2nd)
+  [ 5,  3,  1,  2, -4],   // E4 (1st)
+];
 // Wound-string unit weights (g/m) are D'Addario's published values; plain-string
 // masses are computed from steel density. Wound core diameters use D'Addario's
 // core rule (~.014 core at .024, ~.018 at .053). Order: low E, A, D, G, B, high E.
@@ -386,6 +440,18 @@ function buildInputs(){
   });
   tb.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",recompute));
 }
+function buildCal(){
+  const tb = $("calbody");
+  ORD.forEach(i=>{
+    const s = STR[i], brk = CUR_BREAK[i].toFixed(1);   // measured old-saddle break points
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${s.name}</td>`+
+      `<td><input type="number" step="0.1" class="calbrk" data-i="${i}" value="${brk}"></td>`+
+      CAL_FRETS.map((fr,j)=>
+        `<td><input type="number" step="0.1" data-i="${i}" data-fret="${fr}" value="${CUR_CENTS[i][j]}" placeholder="¢"></td>`).join("");
+    tb.appendChild(tr);
+  });
+}
 function loadPreset(name){
   const p = PRESETS[name];
   document.querySelectorAll("#inbody input").forEach(inp=>{
@@ -395,7 +461,8 @@ function loadPreset(name){
 }
 function readInputs(){
   const g = {scale:+$("scale").value, frets:Math.round(+$("frets").value), stiff:$("stiff").checked,
-    nut:$("nutEnabled").checked, refEdge:$("refEdge").checked,
+    nut:$("nutEnabled").checked, refEdge:$("refEdge").checked, calGain:+$("calGain").value,
+    mottola:$("mottola").checked, fretH:+$("fretH").value,
     d6:+$("d6").value, d1:+$("d1").value, sw:+$("sw").value, spread:+$("spread").value};
   const rows = STR.map((s,i)=>({name:s.name,t:s.t}));
   document.querySelectorAll("#inbody input").forEach(inp=>{
@@ -406,7 +473,8 @@ function readInputs(){
 
 function computeString(g,p){
   const L=g.scale/1000, f=p.f, mu=p.mu/1000, dc=p.dia/1000, E=p.E*1e9,
-        a1=p.a1/1000, a12=p.a12/1000, stiff=g.stiff?1:0, N=g.frets;
+        a1=p.a1/1000, a12=p.a12/1000, stiff=g.stiff?1:0, N=g.frets,
+        fretH=g.mottola?(g.fretH||0)/1000:0;
   const T0=mu*Math.pow(2*L*f,2), EA=E*Math.PI/4*dc*dc, Kc=1200/Math.LN2;
   const d1f=L*(1-Math.pow(2,-1/12)), d12f=L*0.5;
   const B0=Math.pow(Math.PI,3)*E*Math.pow(dc,4)/(64*T0*L*L);
@@ -414,14 +482,14 @@ function computeString(g,p){
   let Saa=0,Suma=0,Sae=0,Sume=0, rows=[];
   for(let n=1;n<=N;n++){
     const dn=L*(1-Math.pow(2,-n/12)), Ln=L*Math.pow(2,-n/12);
-    const cn=a1+(a12-a1)*(dn-d1f)/(d12f-d1f);
+    const cn=a1+(a12-a1)*(dn-d1f)/(d12f-d1f)+fretH;   // fretH>0 = Mottola "deflect to fingerboard"
     const dL=(cn*cn/2)*(1/dn+1/Ln), dT=EA*dL/L;
     const ed=600*log2(1+dT/T0);
     const Bn=Math.pow(Math.PI,3)*E*Math.pow(dc,4)/(64*T0*Ln*Ln);
     const es=stiff*600*log2((1+Bn)/(1+B0));
-    const eb=ed+es, an=Kc*(1/L-1/Ln);
+    const eb=(g.calGain||1)*ed+es, an=Kc*(1/L-1/Ln);
     Saa+=an*an; Suma+=an; Sae+=an*eb; Sume+=eb;
-    rows.push({n,eb,an});
+    rows.push({n,eb,ed,an});  // ed = raw gain-1 deflection error, kept for §02 calibration
   }
   const Sab=b*Suma, Sbb=b*b*N, Sbe=b*Sume, det=Saa*Sbb-Sab*Sab;
   let ds, nut;
@@ -448,6 +516,9 @@ function recompute(){
   $("legCentre").textContent = "slot "+rt;
   RES = rows.map(p=>({...p, ...computeString(g,p)}));
   REST = rows.map(p=>{ const pt={...p, a12:targetA12(p.t)}; return {...pt, ...computeString(g,pt)}; });
+  anchorTargetToCurrent(g);
+  if($("calStatus")) $("calStatus").textContent = (g.calGain||1)===1
+    ? "gain 1.00 — model uncalibrated" : `gain ${(g.calGain||1).toFixed(2)} — applied to all sections`;
   renderResults();
   renderCurveTabs();
   renderCurve(g);
@@ -456,6 +527,126 @@ function recompute(){
   if($("sadTh")){ $("sadTh").value=g.sw; $("sadSpread").value=g.spread;
     $("endMargin").textContent=((+$("sadLen").value - g.spread)/2).toFixed(1); }
   updateDerivedHeights();
+  persistSoon();
+}
+
+// Fit the deflection gain k against measured intonation, anchored by each string's
+// known current break point. With the break known, the saddle term an·ds_current is a
+// constant we subtract off, leaving a clean 2-parameter linear fit:
+//   measured(n) − an·ds_current = k·ed(n) + β
+// where β is one shared constant soaking up imperfect open-string tuning. ed varies with
+// fret while β does not, so this is well-conditioned (unlike a cents-only fit).
+function fitGain(){
+  if(!RES.length) recompute();
+  const scale=+$("scale").value;
+  // pooled simple linear regression of y on x: x = ed, y = measured − an·ds_current
+  let Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0, npts=0, used=0;
+  STR.forEach((s,i)=>{
+    const rows = RES[i].rows;
+    const brkInp=document.querySelector(`#calbody input.calbrk[data-i="${i}"]`);
+    if(!brkInp || brkInp.value.trim()==="" || !isFinite(+brkInp.value)) return;
+    const ds_current=(+brkInp.value - scale)/1000;   // setback in metres (break beyond scale → +)
+    let strHas=false;
+    CAL_FRETS.forEach(fr=>{
+      const inp=document.querySelector(`#calbody input[data-i="${i}"][data-fret="${fr}"]`);
+      if(!inp || inp.value.trim()==="" || !rows[fr-1] || !isFinite(+inp.value)) return;
+      const x = rows[fr-1].ed, y = (+inp.value) - rows[fr-1].an*ds_current;
+      Sx+=x; Sy+=y; Sxx+=x*x; Sxy+=x*y; Syy+=y*y; npts++; strHas=true;
+    });
+    if(strHas) used++;
+  });
+  if(npts<2){ $("calStatus").textContent="enter a break + at least one fret on two or more points"; return; }
+  const den=npts*Sxx-Sx*Sx;
+  if(Math.abs(den)<1e-9){ $("calStatus").textContent="frets too alike to separate gain from offset"; return; }
+  const k=(npts*Sxy-Sx*Sy)/den, beta=(Sy-k*Sx)/npts;
+  // R² of the regression
+  const ssTot=Syy-Sy*Sy/npts, ssRes=Syy-k*Sxy-beta*Sy;
+  const r2=ssTot>1e-9?Math.max(0,1-ssRes/ssTot):0;
+  $("calGain").value=k.toFixed(3);
+  recompute();
+  $("calStatus").textContent =
+    `gain ${k.toFixed(2)} · offset ${beta>=0?"+":"−"}${Math.abs(beta).toFixed(2)}¢ · ${used} string${used>1?"s":""}, ${npts} points · R²=${r2.toFixed(2)}`;
+}
+function resetGain(){ $("calGain").value="1"; recompute(); }
+
+// Re-base each target break point on the (in-tune) current saddle instead of the absolute
+// model: target_setback = current_setback × (REST/RES), the model's as-built→target action²
+// ratio. The deflection gain cancels in that ratio, so the cut keeps the real compensation
+// the working saddle already has and only rescales it for the lower action. Mutates REST.
+function anchorTargetToCurrent(g){
+  const cb=$("anchorTarget");
+  if(!cb || !cb.checked || !RES.length) return;
+  const Kc=1200/Math.LN2, b=-Kc/(g.scale/1000);
+  REST.forEach((r,i)=>{
+    const brk=document.querySelector(`#calbody input.calbrk[data-i="${i}"]`);
+    if(!brk || brk.value.trim()==="" || !isFinite(+brk.value)) return;   // no measured break → keep model
+    const base=RES[i].saddle;
+    if(Math.abs(base)<1e-6) return;                                      // avoid ÷0 → keep model
+    const ratio=r.saddle/base;                       // as-built→target action² scaling (gain-free)
+    const dsA=((+brk.value)-g.scale)*ratio;          // anchored target setback, mm
+    const dsAm=dsA/1000, nut=r.nut/1000;
+    let ra=0; r.rows.forEach(rr=>{ rr.ef=rr.eb+rr.an*dsAm+b*nut; ra+=rr.ef*rr.ef; });
+    r.saddle=dsA; r.rmsA=Math.sqrt(ra/r.rows.length); r.anchored=true;
+  });
+}
+
+// ---- Save / load every input on the page as JSON ----
+function collectState(){
+  const s={version:2, byId:{}, strings:{}, calBreak:{}, calCents:{}, crestRef:{}, crestNew:{}};
+  document.querySelectorAll("input[id], select[id]").forEach(el=>{
+    s.byId[el.id] = el.type==="checkbox" ? el.checked : el.value;
+  });
+  document.querySelectorAll("#inbody input").forEach(el=>{ s.strings[el.dataset.i+"_"+el.dataset.f]=el.value; });
+  document.querySelectorAll("#calbody input.calbrk").forEach(el=>{ s.calBreak[el.dataset.i]=el.value; });
+  document.querySelectorAll("#calbody input[data-fret]").forEach(el=>{ s.calCents[el.dataset.i+"_"+el.dataset.fret]=el.value; });
+  document.querySelectorAll("#sadHeights input[data-ref]").forEach(el=>{ s.crestRef[el.dataset.ref]=el.value; });
+  document.querySelectorAll("#sadHeights input[data-sc]").forEach(el=>{
+    s.crestNew[el.dataset.sc]={value:el.value, locked:!!el.dataset.locked};
+  });
+  return s;
+}
+function applyState(s){
+  if(!s || typeof s!=="object") throw new Error("not a saved-inputs file");
+  for(const id in (s.byId||{})){ const el=$(id); if(!el) continue;
+    if(el.type==="checkbox") el.checked=!!s.byId[id]; else el.value=s.byId[id];
+  }
+  for(const k in (s.strings||{})){ const [i,f]=k.split("_");
+    const el=document.querySelector(`#inbody input[data-i="${i}"][data-f="${f}"]`); if(el) el.value=s.strings[k];
+  }
+  for(const i in (s.calBreak||{})){ const el=document.querySelector(`#calbody input.calbrk[data-i="${i}"]`); if(el) el.value=s.calBreak[i]; }
+  for(const k in (s.calCents||{})){ const [i,fr]=k.split("_");
+    const el=document.querySelector(`#calbody input[data-i="${i}"][data-fret="${fr}"]`); if(el) el.value=s.calCents[k];
+  }
+  for(const i in (s.crestRef||{})){ const el=document.querySelector(`#sadHeights input[data-ref="${i}"]`); if(el) el.value=s.crestRef[i]; }
+  for(const i in (s.crestNew||{})){ const el=document.querySelector(`#sadHeights input[data-sc="${i}"]`); if(!el) continue;
+    const o=s.crestNew[i]; el.value=o.value;
+    if(o.locked) el.dataset.locked="1"; else delete el.dataset.locked;   // set before recompute so overrides survive
+  }
+  recompute();
+}
+function saveJson(){
+  const blob=new Blob([JSON.stringify(collectState(),null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="saddle-compensation-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  $("ioStatus").textContent="Saved "+a.download;
+}
+function loadJsonFile(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{ applyState(JSON.parse(r.result)); $("ioStatus").textContent="Loaded "+file.name; }
+    catch(e){ $("ioStatus").textContent="Couldn't load: "+e.message; } };
+  r.readAsText(file);
+}
+
+// ---- auto-persist all inputs to localStorage so they survive a page reload ----
+const LS_KEY="saddle-comp-state";
+let persistTimer=null;
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(collectState())); }catch(e){} }
+function persistSoon(){ clearTimeout(persistTimer); persistTimer=setTimeout(persist,150); }
+function restoreSaved(){            // called once at startup, after the tables are built
+  let raw; try{ raw=localStorage.getItem(LS_KEY); }catch(e){ return; }
+  if(!raw) return;
+  try{ applyState(JSON.parse(raw)); }catch(e){ /* stale/corrupt — keep defaults */ }
 }
 
 function renderResults(){
@@ -555,6 +746,16 @@ function saddleRows(data){
     `<td class="num">${fmt(d.front,2)}</td>`+
     `<td style="text-align:right;color:${d.fits?'var(--ok)':'var(--alert)'};font-family:var(--mono);font-size:12px">${d.fits?'fits':'OUT'}</td></tr>`; }).join("");
 }
+// distinct marker shapes so overlapping break points stay readable
+function marker(shape, cx, cy, color){
+  cx=+cx; cy=+cy;
+  if(shape==="ring") return `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="6" fill="none" stroke="${color}" stroke-width="1.8"/>`;
+  const st=`fill="${color}" stroke="#fbf6ea" stroke-width="1.2"`;
+  let pts;
+  if(shape==="diamond"){ const s=6; pts=[[cx,cy-s],[cx+s,cy],[cx,cy+s],[cx-s,cy]]; }
+  else { const s=6.7; pts=[[cx,cy-s],[cx+s*0.92,cy+s*0.72],[cx-s*0.92,cy+s*0.72]]; } // triangle
+  return `<polygon points="${pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}" ${st}/>`;
+}
 function renderSaddle(g){
   const dataA = saddleData(g, RES), dataT = saddleData(g, REST);
   const anyOut = dataT.some(d=>!d.fits);   // banner reflects the target — that's what gets cut
@@ -564,10 +765,13 @@ function renderSaddle(g){
   $("saddleTab").innerHTML = saddleRows(dataA);
   $("saddleTabT").innerHTML = saddleRows(dataT);
 
+  // current (measured) break point per string, from §02 — null if not entered
+  const curBreaks = STR.map((s,i)=>{ const el=document.querySelector(`#calbody input.calbrk[data-i="${i}"]`);
+    return el && el.value.trim()!=="" && isFinite(+el.value) ? +el.value : null; });
   // geometry
   const off = g.refEdge ? g.sw/2 : 0;
   const W=560,H=300, m={l:58,r:20,t:26,b:30};
-  const xsAll=[].concat(dataA.map(d=>d.inner), dataA.map(d=>d.inner+g.sw), dataA.map(d=>d.ideal), dataT.map(d=>d.ideal));
+  const xsAll=[].concat(dataA.map(d=>d.inner), dataA.map(d=>d.inner+g.sw), dataA.map(d=>d.ideal), dataT.map(d=>d.ideal), curBreaks.filter(v=>v!=null));
   let xmin=Math.min(...xsAll), xmax=Math.max(...xsAll);
   const xpad=(xmax-xmin)*0.18||1; xmin-=xpad; xmax+=xpad;
   const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
@@ -583,8 +787,9 @@ function renderSaddle(g){
     const dT=dataT[i], y=Y(dA.y).toFixed(1);
     rows+=`<line x1="${m.l-4}" y1="${y}" x2="${W-m.r}" y2="${y}" stroke="#ece1cb" stroke-width="1"/>`;
     rows+=`<text x="${m.l-9}" y="${(+y+3.5)}" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" fill="#6f5b46">${dA.name.split(" ")[0]}</text>`;
-    rows+=`<circle cx="${X(dA.ideal).toFixed(1)}" cy="${y}" r="5" fill="${dA.fits?'#a8821f':'#9c2d18'}" stroke="#fbf6ea" stroke-width="1.2"/>`;
-    rows+=`<circle cx="${X(dT.ideal).toFixed(1)}" cy="${y}" r="4" fill="${dT.fits?'#5a6e36':'#9c2d18'}" stroke="#fbf6ea" stroke-width="1.2"/>`;
+    if(curBreaks[i]!=null) rows+=marker("ring", X(curBreaks[i]), y, "#2a1d12");      // current · measured
+    rows+=marker("diamond", X(dA.ideal), y, dA.fits?'#a8821f':'#9c2d18');             // as-built
+    rows+=marker("triangle", X(dT.ideal), y, dT.fits?'#5a6e36':'#9c2d18');            // target
   });
   // x scale ticks
   let ax="";
@@ -645,8 +850,13 @@ function renderNut(g){
 }
 
 $("presetSel").addEventListener("change",()=>loadPreset($("presetSel").value));
-["scale","frets","stiff","nutEnabled","d6","d1","sw","spread","actBass","actTreb"].forEach(id=>
+["scale","frets","stiff","nutEnabled","d6","d1","sw","spread","actBass","actTreb","calGain","anchorTarget","mottola","fretH"].forEach(id=>
   $(id).addEventListener("input",recompute));
+$("fitGain").addEventListener("click",fitGain);
+$("resetGain").addEventListener("click",resetGain);
+$("saveJson").addEventListener("click",saveJson);
+$("loadJson").addEventListener("click",()=>$("loadJsonFile").click());
+$("loadJsonFile").addEventListener("change",e=>{ if(e.target.files[0]) loadJsonFile(e.target.files[0]); e.target.value=""; });
 $("refEdge").addEventListener("change",()=>{
   const w=+$("sw").value, delta=$("refEdge").checked?-w/2:w/2;
   $("d6").value=(+$("d6").value+delta).toFixed(3);
@@ -710,6 +920,7 @@ function updateDerivedHeights(){
 function resetHeights(){
   document.querySelectorAll('#sadHeights input[data-sc]').forEach(inp=>delete inp.dataset.locked);
   updateDerivedHeights();
+  persistSoon();
 }
 
 // Shared geometry source for both the .scad text and the in-page 3D preview.
@@ -834,8 +1045,13 @@ $("dlScad").addEventListener("click",downloadScad);
 $("resetHeights").addEventListener("click",resetHeights);
 
 buildInputs();
+buildCal();
 buildSadHeights();
 loadPreset("jp-12");
+restoreSaved();                                   // re-apply anything saved from a previous visit
+// catch manual edits in the dynamically-built tables (cal cents/breaks, crest overrides),
+// which don't all route through recompute(); debounced so it's cheap on every keystroke
+document.addEventListener("input", persistSoon);
 </script>
 
 <!-- 3D preview: all classic scripts + base64-embedded wasm, so it also works
