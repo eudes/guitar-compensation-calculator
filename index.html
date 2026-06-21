@@ -328,8 +328,11 @@
       <div><label>String spread <span class="u">from §01</span></label><input type="number" id="sadSpread" value="54.6" step="0.5" disabled></div>
       <div><label>Trim bass end <span class="u">mm</span></label><input type="number" id="trimL" value="0" step="0.5" min="0"></div>
       <div><label>Trim treble end <span class="u">mm</span></label><input type="number" id="trimR" value="0" step="0.5" min="0"></div>
+      <div><label>Trim nut-side face <span class="u">mm</span></label><input type="number" id="trimFront" value="0" step="0.1" min="0"></div>
+      <div><label>Trim pin-side face <span class="u">mm</span></label><input type="number" id="trimBack" value="0" step="0.1" min="0"></div>
+      <div><label>Break-edge roundover <span class="u">radius, mm</span></label><input type="number" id="roundover" value="0" step="0.1" min="0"></div>
     </div>
-    <p class="note" style="margin-top:10px">Thickness follows the saddle slot width and string spread follows §01 — change them there. Strings are centred on the blank, leaving equal margins at each end (~<span id="endMargin">10.2</span>&nbsp;mm). Trim cuts material off each end so the piece drops into a shorter or round-ended slot — the strings don't move, so keep each trim under the end margin.</p>
+    <p class="note" style="margin-top:10px">Thickness follows the saddle slot width and string spread follows §01 — change them there. Strings are centred on the blank, leaving equal margins at each end (~<span id="endMargin">10.2</span>&nbsp;mm). End trims cut material off each end so the piece drops into a shorter or round-ended slot — the strings don't move, so keep each trim under the end margin. The two <b>face trims</b> thin the saddle from the nut side and the pin side independently (modeled thickness = slot width − both, now <span id="thkNow">3.0</span>&nbsp;mm). Because each crown bevels down from its break point, shaving the <b>nut-side</b> face cuts into the down-slope of the bass crowns (whose break sits at that face) — lowering those break edges and nudging the bass break a touch further back. <b>Break-edge roundover</b> rounds the sharp crown to a radius so the string beds on a smooth contact (0 = sharp peak; it lowers the crown slightly, by about <span id="roundDrop">0.0</span>&nbsp;mm).</p>
 
     <div class="subhead">Top profile from action</div>
     <div class="grid g-global">
@@ -916,6 +919,11 @@ function updateDerivedHeights(){
     ? "Per-string: each crest shaped to its own target."
     : `Uniform: every crest lowered ${uniform.toFixed(2)} mm (tightest string).`;
   if($("endMargin")) $("endMargin").textContent=((+$("sadLen").value - (+$("spread").value))/2).toFixed(1);
+  if($("thkNow")){ const sw=+$("sw").value, mt=sw-0.5;
+    const tf=Math.min(mt,Math.max(0,+$("trimFront").value)), tb=Math.min(mt-tf,Math.max(0,+$("trimBack").value));
+    $("thkNow").textContent=(sw-tf-tb).toFixed(1); }
+  if($("roundDrop")){ const r=Math.max(0,+$("roundover").value), b=+$("bevelDeg").value;
+    $("roundDrop").textContent=(r*(1/Math.cos(b*Math.PI/180)-1)).toFixed(2); }
 }
 function resetHeights(){
   document.querySelectorAll('#sadHeights input[data-sc]').forEach(inp=>delete inp.dataset.locked);
@@ -926,28 +934,38 @@ function resetHeights(){
 // Shared geometry source for both the .scad text and the in-page 3D preview.
 function saddleModel(){
   const {g} = readInputs();
-  const length=+$("sadLen").value, thickness=g.sw, bevel=+$("bevelDeg").value;
+  const length=+$("sadLen").value, bevel=+$("bevelDeg").value;
   const trimL=Math.max(0,+$("trimL").value), trimR=Math.max(0,+$("trimR").value);
+  const maxTrim=g.sw-0.5;                              // keep ≥0.5 mm of stock
+  const tf=Math.min(maxTrim, Math.max(0,+$("trimFront").value));        // nut-side face trim
+  const tb=Math.min(maxTrim-tf, Math.max(0,+$("trimBack").value));      // pin-side face trim
+  const thickness=g.sw-tf-tb;
+  const roundover=Math.min(Math.max(0,+$("roundover").value), thickness/2-0.05);  // crown radius, ≤ half-thickness
   const spread=g.spread, margin=(length-spread)/2;
-  const strpos=[], crests=[], breaks=[];
+  // half-width of the flat break-edge run at each string (~5 mm total), clamped so
+  // neighbouring plateaus never touch (no vertex lands on a string contact)
+  const gap=spread/Math.max(1,STR.length-1), flat=Math.min(2.5, gap*0.45);
+  const strpos=[], crests=[], fronts=[], breaks=[];
   REST.forEach((r,i)=>{                 // target compensation drives the cut saddle
     const t=STR[i].t, p=margin+spread*t;
     const off=g.refEdge?g.sw/2:0;
     const inner=g.d6+(g.d1-g.d6)*t+off-g.sw/2;
     const ideal=g.scale+r.saddle;
-    const front=Math.max(0,Math.min(thickness, ideal-inner));
-    strpos.push(p); breaks.push([p,front]);
+    const qbOrig=Math.max(0,Math.min(g.sw, ideal-inner));   // crown clamped into the slot (full height at a face)
+    const front=qbOrig-tf;   // crown relative to the trimmed nut face; <0 = crown ahead of it (bevel lowers that edge)
+    strpos.push(p); fronts.push(front);
+    breaks.push([p-flat,front],[p+flat,front]);   // flat plateau: break edge stays straight across the contact
     crests.push(+document.querySelector(`#sadHeights input[data-sc="${i}"]`).value);
   });
-  return {g, length, thickness, bevel, trimL, trimR, strpos, crests, breaks, ca:quadFit(strpos,crests)};
+  return {g, length, thickness, bevel, roundover, trimL, trimR, flat, strpos, crests, fronts, breaks, ca:quadFit(strpos,crests)};
 }
 window.saddleModel = saddleModel;
 
 function generateScad(){
-  const {g, length, thickness, bevel, trimL, trimR, strpos, crests, breaks, ca} = saddleModel();
+  const {g, length, thickness, bevel, roundover, trimL, trimR, flat, strpos, crests, fronts, breaks, ca} = saddleModel();
   const n=x=>(+x).toFixed(4);
   const breakStr=breaks.map(b=>`[${n(b[0])}, ${n(b[1])}]`).join(", ");
-  const pairStr=strpos.map((p,i)=>`//   ${STR[i].name.padEnd(9)} p=${n(p)}  crest=${crests[i].toFixed(2)}  break(from front face)=${n(breaks[i][1])}`).join("\n");
+  const pairStr=strpos.map((p,i)=>`//   ${STR[i].name.padEnd(9)} p=${n(p)}  crest=${crests[i].toFixed(2)}  break(from front face)=${n(fronts[i])}`).join("\n");
   const today=new Date().toISOString().slice(0,10);
   return `// Acoustic guitar saddle — generated by the Nut & Saddle Compensation tool
 // ${today}
@@ -960,6 +978,7 @@ ${pairStr}
 length    = ${n(length)};   // along the saddle, bass -> treble
 thickness = ${n(thickness)};   // fore-aft (= saddle slot width)
 bevel     = ${n(bevel)};   // break-edge slope, degrees down from the crest
+roundover = ${n(roundover)};   // radius rounding the sharp crown (0 = sharp peak)
 trimL     = ${n(trimL)};   // cut off the bass end (p=0)
 trimR     = ${n(trimR)};   // cut off the treble end (p=length)
 
@@ -971,8 +990,14 @@ top_clear  = 1.0;   // leave the top 1 mm of the face unmarked
 // faired crest height:  Hc(p) = ca[0]*p^2 + ca[1]*p + ca[2]
 ca = [${n(ca[0])}, ${n(ca[1])}, ${n(ca[2])}];
 
-// break line: [position_along, break_q from nut-side face], piecewise-linear
+// break line: [position_along, break_q from nut-side face], piecewise-linear.
+// Two nodes per string at the same break_q give a flat run across each contact, so the
+// break edge has no vertex on a string (bends fall in the gaps between strings).
+// (break_q < 0 means the crown sits ahead of the trimmed nut face, so its edge rides the bevel down)
 breaks = [${breakStr}];
+
+// exact lengthwise position of each string — one engraving mark per string
+strmarks = [${strpos.map(n).join(", ")}];
 
 $fn = 48;
 /* ----------------------------------------------------- */
@@ -982,16 +1007,36 @@ function qb(p) = lookup(p, breaks);
 // top falls away from the break line as a straight ramp at 'bevel' degrees
 function ztop(p,q) = Hc(p) - tan(bevel)*abs(q - qb(p));
 
-// cross-section: two ramps meeting at the crest (skip the peak if it's on a face)
-function topPts(p) = let(b = qb(p))
-    concat( [[0, ztop(p,0)]],
-            (b > 0 && b < thickness) ? [[b, Hc(p)]] : [],
-            [[thickness, ztop(p,thickness)]] );
+function unit(v) = v / norm(v);
+function clampv(x,lo,hi) = max(lo, min(hi, x));
+// round a convex vertex V (between neighbours A and B) to radius r → arc point list
+function fillet(V, A, B, r) =
+    let( a = unit(A - V), b = unit(B - V),
+         ang = acos(clampv(a*b, -1, 1)),               // interior angle at V (degrees)
+         t = r / tan(ang/2),
+         C = V + unit(a + b) * (r / sin(ang/2)),        // arc centre, on the interior side
+         pA = V + a*t, pB = V + b*t,                    // tangent points on each edge
+         aA = atan2(pA[1]-C[1], pA[0]-C[0]),
+         aB = atan2(pB[1]-C[1], pB[0]-C[0]),
+         d  = ((aB - aA) + 540) % 360 - 180,            // shortest signed sweep (the minor arc)
+         segs = max(3, ceil(abs(d)/360 * $fn)) )
+    [ for(i=[0:segs]) let(ai = aA + d*i/segs) C + r*[cos(ai), sin(ai)] ];
+
+// cross-section: two ramps meeting at the crest; the crown vertex is rounded when
+// roundover>0 (analytic arc — no offset, so it lofts fast). The foot stays sharp.
+function topPoly(p) =
+    let( b = qb(p), z0 = ztop(p,0), z1 = ztop(p,thickness), Hcp = Hc(p), r = roundover )
+    (r <= 0)
+        ? concat([[0,0],[0,z0]], (b>0 && b<thickness)?[[b,Hcp]]:[], [[thickness,z1],[thickness,0]])
+    : (b > 0 && b < thickness)                                  // crown in the open → symmetric round
+        ? concat([[0,0],[0,z0]], fillet([b,Hcp],[0,z0],[thickness,z1], r), [[thickness,z1],[thickness,0]])
+    : (b <= 0)                                                  // crown clamped to the nut face
+        ? concat([[0,0]], fillet([0,z0],[0,0],[thickness,z1], r), [[thickness,z1],[thickness,0]])
+        : concat([[0,0],[0,z0]], fillet([thickness,z1],[0,z0],[thickness,0], r), [[thickness,0]]);  // pin face
 
 module xslice(p) {
     translate([p,0,0]) rotate([90,0,90])
-        linear_extrude(height=0.02, center=true)
-            polygon(concat( [[0,0]], topPts(p), [[thickness,0]] ));
+        linear_extrude(height=0.02, center=true) polygon(topPoly(p));
 }
 
 module loft() {
@@ -1020,8 +1065,8 @@ module groove(p, z0, z1) {                     // a vertical line cut mark_depth
 }
 module marks() {
     groove(cen, 0, mark_len);                  // saddle centre — a tick up from the bottom
-    for (b = breaks) let (top = ztop(b[0], 0)) // each string centre — a tick down from the top
-        groove(b[0], max(0.4, top - top_clear - mark_len), top - top_clear);
+    for (p = strmarks) let (top = ztop(p, 0))  // one tick per string, at its exact position
+        groove(p, max(0.4, top - top_clear - mark_len), top - top_clear);
 }
 
 // Mirror along the length: viewed from the nut-side (engraved) face, the bass end
@@ -1039,7 +1084,7 @@ function downloadScad(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-["sadLen","bevelDeg"].forEach(id=>$(id).addEventListener("input",updateDerivedHeights));
+["sadLen","bevelDeg","trimFront","trimBack","roundover"].forEach(id=>$(id).addEventListener("input",updateDerivedHeights));
 $("perString").addEventListener("change",updateDerivedHeights);
 $("dlScad").addEventListener("click",downloadScad);
 $("resetHeights").addEventListener("click",resetHeights);
